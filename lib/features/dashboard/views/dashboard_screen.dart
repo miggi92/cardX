@@ -61,16 +61,6 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-      // Die Navigation am unteren Rand
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // 0 = Home
-        selectedItemColor: Theme.of(context).primaryColor,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.style), label: 'Sammlung'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
-        ],
-      ),
     );
   }
 
