@@ -1,18 +1,29 @@
-import 'package:cardx/core/providers/coin_provider.dart';
-import 'package:cardx/core/providers/collection_provider.dart';
+import 'dart:math'; // Wichtig für Random()
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../cards/models/card_model.dart';
 import '../../cards/models/card_rarity.dart';
 import '../../cards/models/player_stats.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/coin_provider.dart';
+import '../../../core/providers/collection_provider.dart';
 import 'pack_reveal_screen.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
 
-  // Eine kleine Hilfsfunktion, die uns "frisch gezogene" Karten generiert
   List<CardModel> _generateDummyPull() {
-    return [
+    final random = Random();
+
+    // Ein Pool an möglichen Spielern
+    final List<CardModel> cardPool = [
+      const CardModel(
+        id: '1',
+        playerName: 'Max Mustermann',
+        position: 'ST',
+        teamName: 'FC Musterstadt',
+        rarity: CardRarity.epic,
+        stats: PlayerStats(goals: 12, games: 20),
+      ),
       const CardModel(
         id: '2',
         playerName: 'Lukas Müller',
@@ -30,52 +41,58 @@ class ShopScreen extends ConsumerWidget {
         stats: PlayerStats(goals: 2, games: 28),
       ),
       const CardModel(
-        id: '1',
-        playerName: 'Max Mustermann',
+        id: '5',
+        playerName: 'Leon Becker',
+        position: 'MF',
+        teamName: 'FC Musterstadt',
+        rarity: CardRarity.common,
+        stats: PlayerStats(goals: 1, games: 15),
+      ),
+      const CardModel(
+        id: '6',
+        playerName: 'Tim Wagner',
         position: 'ST',
         teamName: 'FC Musterstadt',
-        rarity: CardRarity.epic,
-        stats: PlayerStats(goals: 12, games: 20),
+        rarity: CardRarity.legendary,
+        stats: PlayerStats(goals: 25, games: 30),
+      ),
+      const CardModel(
+        id: '7',
+        playerName: 'Jonas Hoffmann',
+        position: 'ABW',
+        teamName: 'FC Musterstadt',
+        rarity: CardRarity.rare,
+        stats: PlayerStats(goals: 4, games: 32),
       ),
     ];
+
+    // Generiert eine Liste mit exakt 10 zufälligen Karten aus dem Pool
+    return List.generate(10, (_) {
+      final randomIndex = random.nextInt(cardPool.length);
+      return cardPool[randomIndex];
+    });
   }
 
   void _buyAndOpenPack(BuildContext context, WidgetRef ref) {
     final packPrice = 500;
 
-    // 1. Versuchen, Coins abzuheben
     final success = ref.read(coinProvider.notifier).spendCoins(packPrice);
 
     if (success) {
-      // 2. Karten generieren
       final pulledCards = _generateDummyPull();
 
-      // 3. Karten direkt in der globalen Sammlung speichern!
       ref.read(collectionProvider.notifier).addCards(pulledCards);
 
-      // 4. Zur Animation navigieren
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => PackRevealScreen(cards: pulledCards),
         ),
       );
     } else {
-      // Fehlermeldung, wenn man pleite ist
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Nicht genug Coins!')));
     }
-  }
-
-  void _openPack(BuildContext context) {
-    final pulledCards = _generateDummyPull();
-
-    // Wir navigieren zum Reveal-Screen und übergeben die gezogenen Karten
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PackRevealScreen(cards: pulledCards),
-      ),
-    );
   }
 
   @override
@@ -104,7 +121,6 @@ class ShopScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ein simples Pack-Design
             Container(
               width: 200,
               height: 300,
