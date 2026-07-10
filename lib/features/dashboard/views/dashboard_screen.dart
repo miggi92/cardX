@@ -1,15 +1,48 @@
-import 'package:cardx/core/providers/collection_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cardx/core/providers/coin_provider.dart';
+import '../../../core/providers/coin_provider.dart';
+import '../../../core/providers/collection_provider.dart';
+import '../../../core/providers/daily_reward_provider.dart';
+import '../../cards/models/card_model.dart';
+import '../../cards/models/card_rarity.dart';
+import '../../cards/models/player_stats.dart';
+import '../../shop/views/pack_reveal_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+
+  List<CardModel> _generateFreePull() {
+    return [
+      const CardModel(
+        id: '4',
+        playerName: 'Freier Spieler',
+        position: 'MF',
+        teamName: 'FC Musterstadt',
+        rarity: CardRarity.common,
+        stats: PlayerStats(goals: 0, games: 0),
+      ),
+    ];
+  }
+
+  void _claimFreePack(BuildContext context, WidgetRef ref) {
+    ref.read(dailyRewardProvider.notifier).claimReward();
+    final pulledCards = _generateFreePull();
+    ref.read(collectionProvider.notifier).addCards(pulledCards);
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PackRevealScreen(cards: pulledCards),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentCoins = ref.watch(coinProvider);
     final myCards = ref.watch(collectionProvider);
+
+    ref.watch(dailyRewardProvider);
+    final canClaimReward = ref.read(dailyRewardProvider.notifier).canClaim;
 
     const int maxCardsInSet = 150;
     final double progressValue = myCards.length / maxCardsInSet;
@@ -18,7 +51,6 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('CardX Dashboard'),
         actions: [
-          // Coins Anzeige in der AppBar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
@@ -57,7 +89,7 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildHeroBanner(),
+            _buildHeroBanner(context, ref, canClaimReward),
             const SizedBox(height: 32),
             const Text(
               'Schnellzugriff',
@@ -73,7 +105,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(BuildContext context, WidgetRef ref, bool canClaim) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -83,13 +115,6 @@ class DashboardScreen extends ConsumerWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,20 +128,22 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Hol dir jetzt deine neuen Spieler.',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+          Text(
+            canClaim
+                ? 'Hol dir jetzt deine neuen Spieler.'
+                : 'Du hast dein Pack heute schon abgeholt.',
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              // Action: Gehe zum Pack-Opening
-            },
+            onPressed: canClaim ? () => _claimFreePack(context, ref) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.blue.shade800,
+              disabledBackgroundColor: Colors.white30,
+              disabledForegroundColor: Colors.white70,
             ),
-            child: const Text('Jetzt öffnen'),
+            child: Text(canClaim ? 'Jetzt öffnen' : 'Morgen wieder verfügbar'),
           ),
         ],
       ),
@@ -127,11 +154,10 @@ class DashboardScreen extends ConsumerWidget {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(), // ListView übernimmt das Scrollen
+      physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      childAspectRatio: 1.5, // Breite zu Höhe der Kacheln
+      childAspectRatio: 1.5,
       children: [
         _buildActionCard('Meine Sammlung', Icons.style, Colors.green),
         _buildActionCard('Mein Team', Icons.shield, Colors.orange),
@@ -184,7 +210,7 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(
           '$collected von $total Karten gesammelt (${(progress * 100).toStringAsFixed(1)}%)',
-          style: TextStyle(color: Colors.grey),
+          style: const TextStyle(color: Colors.grey),
         ),
       ],
     );
