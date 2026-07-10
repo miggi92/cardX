@@ -25,8 +25,10 @@ class SupabaseCollectionRepository {
           .from('player-images')
           .getPublicUrl('${player['id']}.png');
 
+      final logicalCardId = '${player['id']}_${json['rarity']}';
+
       return CardModel(
-        id: json['card_id'],
+        id: logicalCardId,
         playerName: player['name'],
         position: player['position'],
         teamName: club['name'],
@@ -46,7 +48,6 @@ class SupabaseCollectionRepository {
           (card) => {
             'user_id': userId,
             'player_id': card.id.split('_')[0],
-            'card_id': card.id,
             'rarity': card.rarity.name,
           },
         )
@@ -57,11 +58,16 @@ class SupabaseCollectionRepository {
 
   Future<void> removeCard(String cardId) async {
     final userId = _supabase.auth.currentUser!.id;
+
+    final targetPlayerId = cardId.split('_')[0];
+    final targetRarity = cardId.split('_')[1];
+
     final response = await _supabase
         .from('user_cards')
         .select('id')
         .eq('user_id', userId)
-        .eq('card_id', cardId)
+        .eq('player_id', targetPlayerId)
+        .eq('rarity', targetRarity)
         .limit(1)
         .maybeSingle();
 

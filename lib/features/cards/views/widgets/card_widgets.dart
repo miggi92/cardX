@@ -45,6 +45,30 @@ class CardWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      width: 35,
+                      height: 35,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Image.network(
+                        card.teamLogoUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.shield,
+                            color: Colors.white70,
+                            size: 20,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                   Text(
                     card.position,
                     style: const TextStyle(
@@ -57,8 +81,8 @@ class CardWidget extends StatelessWidget {
               ),
               Expanded(
                 child: Center(
-                  child: card.imageUrl != null
-                      ? Image.network(card.imageUrl!)
+                  child: card.playerImageUrl.isNotEmpty
+                      ? Image.network(card.playerImageUrl)
                       : const Icon(
                           Icons.person,
                           size: 80,

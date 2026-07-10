@@ -20,6 +20,8 @@ class DashboardScreen extends ConsumerWidget {
         teamName: 'FC Musterstadt',
         rarity: CardRarity.common,
         stats: PlayerStats(goals: 0, games: 0),
+        teamLogoUrl: '',
+        playerImageUrl: '',
       ),
     ];
   }
