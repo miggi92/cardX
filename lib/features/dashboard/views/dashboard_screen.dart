@@ -1,10 +1,19 @@
+import 'package:cardx/core/providers/collection_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cardx/core/providers/coin_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentCoins = ref.watch(coinProvider);
+    final myCards = ref.watch(collectionProvider);
+
+    const int maxCardsInSet = 150;
+    final double progressValue = myCards.length / maxCardsInSet;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('CardX Dashboard'),
@@ -31,7 +40,7 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '1,250', // Später dynamisch aus dem UserModel
+                      currentCoins.toString(),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.amber.shade900,
@@ -57,7 +66,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _buildQuickActionsGrid(),
             const SizedBox(height: 32),
-            _buildProgressSection(),
+            _buildProgressSection(myCards.length, maxCardsInSet, progressValue),
           ],
         ),
       ),
@@ -156,7 +165,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressSection() {
+  Widget _buildProgressSection(int collected, int total, double progress) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -166,15 +175,15 @@ class DashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         LinearProgressIndicator(
-          value: 45 / 150, // 45 von 150 Karten
+          value: progress,
           minHeight: 10,
           backgroundColor: Colors.grey.shade300,
           color: Colors.blue,
           borderRadius: BorderRadius.circular(10),
         ),
         const SizedBox(height: 8),
-        const Text(
-          '45 von 150 Karten gesammelt (30%)',
+        Text(
+          '$collected von $total Karten gesammelt (${(progress * 100).toStringAsFixed(1)}%)',
           style: TextStyle(color: Colors.grey),
         ),
       ],
