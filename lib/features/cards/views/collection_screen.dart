@@ -6,11 +6,24 @@ import '../../../core/providers/coin_provider.dart';
 import '../../cards/models/card_model.dart';
 import '../../cards/models/card_rarity.dart';
 
-class CollectionScreen extends ConsumerWidget {
+class CollectionScreen extends ConsumerStatefulWidget {
   const CollectionScreen({super.key});
 
-  // 1. Neue Hilfsfunktion für die Berechnung des Verkaufswerts
-  int _getSellValue(CardRarity rarity) {
+  @override
+  ConsumerState<CollectionScreen> createState() => _CollectionScreenState();
+}
+
+class _CollectionScreenState extends ConsumerState<CollectionScreen> {
+  final TextEditingController searchController = TextEditingController();
+  CardRarity? selectedRarity;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  int getSellValue(CardRarity rarity) {
     switch (rarity) {
       case CardRarity.legendary:
         return 200;
@@ -23,15 +36,8 @@ class CollectionScreen extends ConsumerWidget {
     }
   }
 
-  // 2. Die Methode anpassen, sodass sie die Hilfsfunktion nutzt
-  void _showQuickSellSheet(
-    BuildContext context,
-    WidgetRef ref,
-    CardModel card,
-    int count,
-  ) {
-    // Wert dynamisch basierend auf der Seltenheit berechnen
-    final int sellValue = _getSellValue(card.rarity);
+  void showQuickSellSheet(CardModel card, int count) {
+    final int sellValue = getSellValue(card.rarity);
 
     showModalBottomSheet(
       context: context,
@@ -97,7 +103,7 @@ class CollectionScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final myCards = ref.watch(collectionProvider);
 
     final Map<String, int> cardCounts = {};
@@ -112,82 +118,218 @@ class CollectionScreen extends ConsumerWidget {
       }
     }
 
+    final String query = searchController.text.toLowerCase();
+
+    final List<CardModel> filteredCards = uniqueCards.where((card) {
+      final matchesSearch = card.playerName.toLowerCase().contains(query);
+      final matchesRarity =
+          selectedRarity == null || card.rarity == selectedRarity;
+      return matchesSearch && matchesRarity;
+    }).toList();
+
+    final Map<String, List<CardModel>> groupedByTeam = {};
+    for (final card in filteredCards) {
+      if (!groupedByTeam.containsKey(card.teamName)) {
+        groupedByTeam[card.teamName] = [];
+      }
+      groupedByTeam[card.teamName]!.add(card);
+    }
+
+    for (final team in groupedByTeam.keys) {
+      groupedByTeam[team]!.sort((a, b) => a.playerName.compareTo(b.playerName));
+    }
+
+    final sortedTeamNames = groupedByTeam.keys.toList()..sort();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Sammlung (${uniqueCards.length} / ${myCards.length} gesamt)',
         ),
       ),
-      body: myCards.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.style, size: 80, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Deine Sammlung ist noch leer.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (value) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'Spieler suchen...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
                   ),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.71,
-              ),
-              itemCount: uniqueCards.length,
-              itemBuilder: (context, index) {
-                final card = uniqueCards[index];
-                final count = cardCounts[card.id]!;
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<CardRarity?>(
+                      value: selectedRarity,
+                      hint: const Text('Alle'),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Alle Raritäten'),
+                        ),
+                        ...CardRarity.values.map((rarity) {
+                          return DropdownMenuItem(
+                            value: rarity,
+                            child: Text(rarity.name.toUpperCase()),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedRarity = value;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-                return GestureDetector(
-                  onTap: () {
-                    if (count > 1) {
-                      _showQuickSellSheet(context, ref, card, count);
-                    }
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CardWidget(card: card),
-                      if (count > 1)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent.shade700,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black54,
-                                  blurRadius: 4,
-                                  offset: Offset(2, 2),
+          Expanded(
+            child: myCards.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.style,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Deine Sammlung ist noch leer.',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : filteredCards.isEmpty
+                ? const Center(child: Text('Keine Spieler gefunden.'))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: sortedTeamNames.length,
+                    itemBuilder: (context, index) {
+                      final teamName = sortedTeamNames[index];
+                      final teamCards = groupedByTeam[teamName]!;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.shield,
+                                  color: Colors.blueAccent,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  teamName,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${teamCards.length} Karten',
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
-                            child: Text(
-                              'x$count',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
                           ),
-                        ),
-                    ],
+
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 0.71,
+                                ),
+                            itemCount: teamCards.length,
+                            itemBuilder: (context, cardIndex) {
+                              final card = teamCards[cardIndex];
+                              final count = cardCounts[card.id]!;
+
+                              return GestureDetector(
+                                onTap: () {
+                                  if (count > 1) {
+                                    showQuickSellSheet(card, count);
+                                  }
+                                },
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    CardWidget(card: card),
+                                    if (count > 1)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent.shade700,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 2,
+                                            ),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Colors.black54,
+                                                blurRadius: 4,
+                                                offset: Offset(2, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Text(
+                                            'x$count',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(height: 48, thickness: 2),
+                        ],
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          ),
+        ],
+      ),
     );
   }
 }
