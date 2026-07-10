@@ -8,38 +8,35 @@ class SupabaseCollectionRepository {
 
   Future<List<CardModel>> getCards() async {
     final userId = _supabase.auth.currentUser!.id;
+
     final response = await _supabase
         .from('user_cards')
-        .select()
+        .select('*, player_pool(*)')
         .eq('user_id', userId);
 
-    return response
-        .map(
-          (json) => CardModel(
-            id: json['card_id'],
-            playerName: json['player_name'],
-            position: json['position'],
-            teamName: json['team_name'],
-            rarity: CardRarity.values.byName(json['rarity']),
-            stats: PlayerStats(goals: json['goals'], games: json['games']),
-          ),
-        )
-        .toList();
+    return response.map((json) {
+      final player = json['player_pool'];
+      return CardModel(
+        id: json['card_id'],
+        playerName: player['name'],
+        position: player['position'],
+        teamName: player['club'],
+        rarity: CardRarity.values.byName(json['rarity']),
+        stats: PlayerStats(goals: player['goals'], games: player['games']),
+      );
+    }).toList();
   }
 
   Future<void> addCards(List<CardModel> cards) async {
     final userId = _supabase.auth.currentUser!.id;
+
     final insertData = cards
         .map(
           (card) => {
             'user_id': userId,
+            'player_id': card.id.split('_')[0],
             'card_id': card.id,
-            'player_name': card.playerName,
-            'position': card.position,
-            'team_name': card.teamName,
             'rarity': card.rarity.name,
-            'goals': card.stats.goals,
-            'games': card.stats.games,
           },
         )
         .toList();
@@ -50,7 +47,6 @@ class SupabaseCollectionRepository {
   Future<void> removeCard(String cardId) async {
     final userId = _supabase.auth.currentUser!.id;
 
-    // Wir suchen exakt EINE Karte mit dieser ID und löschen sie (für Quick Sell)
     final response = await _supabase
         .from('user_cards')
         .select('id')
@@ -65,7 +61,6 @@ class SupabaseCollectionRepository {
   }
 
   Future<void> syncCollection(List<CardModel> uniqueCards) async {
-    // Für den Bulk-Sell: Wir werfen alle Karten weg und speichern nur die einzigartigen neu ab
     final userId = _supabase.auth.currentUser!.id;
     await _supabase.from('user_cards').delete().eq('user_id', userId);
 
