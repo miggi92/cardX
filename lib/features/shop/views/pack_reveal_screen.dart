@@ -1,6 +1,6 @@
-import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
 import 'package:flutter/material.dart';
 import '../../cards/models/card_model.dart';
+import '../../cards/views/widgets/flip_card_widget.dart';
 
 class PackRevealScreen extends StatefulWidget {
   final List<CardModel> cards;
@@ -23,8 +23,7 @@ class _PackRevealScreenState extends State<PackRevealScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          Colors.black87, // Dunkler Hintergrund für Fokus auf die Karten
+      backgroundColor: Colors.black87,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -43,8 +42,6 @@ class _PackRevealScreenState extends State<PackRevealScreen> {
               controller: _pageController,
               itemCount: widget.cards.length,
               itemBuilder: (context, index) {
-                // Ein kleiner Trick, damit die aktuelle Karte größer wirkt
-                // als die benachbarten Karten im PageView.
                 return AnimatedBuilder(
                   animation: _pageController,
                   builder: (context, child) {
@@ -59,7 +56,7 @@ class _PackRevealScreenState extends State<PackRevealScreen> {
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                    child: CardWidget(card: widget.cards[index]),
+                    child: FlipCardWidget(card: widget.cards[index]),
                   ),
                 );
               },
@@ -73,7 +70,7 @@ class _PackRevealScreenState extends State<PackRevealScreen> {
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Zurück zum Shop
+              Navigator.of(context).pop();
             },
             child: const Text('Karten einsammeln'),
           ),

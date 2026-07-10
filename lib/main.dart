@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cardx/features/navigation/views/main_navigation_screen.dart';
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
@@ -16,6 +17,14 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.touch,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.unknown,
+        },
+      ),
       home: const MainNavigationScreen(),
     );
   }
