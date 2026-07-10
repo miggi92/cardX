@@ -81,13 +81,17 @@ class CardWidget extends StatelessWidget {
               ),
               Expanded(
                 child: Center(
-                  child: card.playerImageUrl.isNotEmpty
-                      ? Image.network(card.playerImageUrl)
-                      : const Icon(
-                          Icons.person,
-                          size: 80,
-                          color: Colors.white54,
-                        ),
+                  child: Image.network(
+                    card.playerImageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.person,
+                        color: Colors.white70,
+                        size: 250,
+                      );
+                    },
+                  ),
                 ),
               ),
               Center(
