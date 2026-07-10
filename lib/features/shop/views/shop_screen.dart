@@ -1,4 +1,4 @@
-import 'dart:math'; // Wichtig für Random()
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../cards/models/card_model.dart';
@@ -11,75 +11,96 @@ import 'pack_reveal_screen.dart';
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
 
-  List<CardModel> _generateDummyPull() {
+  List<CardModel> generatePulls() {
     final random = Random();
+    final List<CardModel> pulledCards = [];
 
-    // Ein Pool an möglichen Spielern
-    final List<CardModel> cardPool = [
-      const CardModel(
-        id: '1',
-        playerName: 'Max Mustermann',
-        position: 'ST',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.epic,
-        stats: PlayerStats(goals: 12, games: 20),
-      ),
-      const CardModel(
-        id: '2',
-        playerName: 'Lukas Müller',
-        position: 'TW',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.common,
-        stats: PlayerStats(goals: 0, games: 34),
-      ),
-      const CardModel(
-        id: '3',
-        playerName: 'Felix Schmidt',
-        position: 'ABW',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.rare,
-        stats: PlayerStats(goals: 2, games: 28),
-      ),
-      const CardModel(
-        id: '5',
-        playerName: 'Leon Becker',
-        position: 'MF',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.common,
-        stats: PlayerStats(goals: 1, games: 15),
-      ),
-      const CardModel(
-        id: '6',
-        playerName: 'Tim Wagner',
-        position: 'ST',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.legendary,
-        stats: PlayerStats(goals: 25, games: 30),
-      ),
-      const CardModel(
-        id: '7',
-        playerName: 'Jonas Hoffmann',
-        position: 'ABW',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.rare,
-        stats: PlayerStats(goals: 4, games: 32),
-      ),
+    final List<Map<String, dynamic>> playerPool = [
+      {
+        'baseId': '1',
+        'name': 'Max Mustermann',
+        'position': 'ST',
+        'goals': 12,
+        'games': 20,
+      },
+      {
+        'baseId': '2',
+        'name': 'Lukas Müller',
+        'position': 'TW',
+        'goals': 0,
+        'games': 34,
+      },
+      {
+        'baseId': '3',
+        'name': 'Felix Schmidt',
+        'position': 'ABW',
+        'goals': 2,
+        'games': 28,
+      },
+      {
+        'baseId': '5',
+        'name': 'Leon Becker',
+        'position': 'MF',
+        'goals': 1,
+        'games': 15,
+      },
+      {
+        'baseId': '6',
+        'name': 'Tim Wagner',
+        'position': 'ST',
+        'goals': 25,
+        'games': 30,
+      },
+      {
+        'baseId': '7',
+        'name': 'Jonas Hoffmann',
+        'position': 'ABW',
+        'goals': 4,
+        'games': 32,
+      },
     ];
 
-    // Generiert eine Liste mit exakt 10 zufälligen Karten aus dem Pool
-    return List.generate(10, (_) {
-      final randomIndex = random.nextInt(cardPool.length);
-      return cardPool[randomIndex];
-    });
+    for (int i = 0; i < 10; i++) {
+      final double roll = random.nextDouble();
+      CardRarity rarity;
+
+      if (roll < 0.05) {
+        rarity = CardRarity.legendary;
+      } else if (roll < 0.20) {
+        rarity = CardRarity.epic;
+      } else if (roll < 0.50) {
+        rarity = CardRarity.rare;
+      } else {
+        rarity = CardRarity.common;
+      }
+
+      final player = playerPool[random.nextInt(playerPool.length)];
+
+      pulledCards.add(
+        CardModel(
+          id: '${player['baseId']}_${rarity.name}',
+          playerName: player['name'] as String,
+          position: player['position'] as String,
+          teamName: 'FC Musterstadt',
+          rarity: rarity,
+          stats: PlayerStats(
+            goals: player['goals'] as int,
+            games: player['games'] as int,
+          ),
+        ),
+      );
+    }
+
+    return pulledCards;
   }
 
-  void _buyAndOpenPack(BuildContext context, WidgetRef ref) {
+  void buyAndOpenPack(BuildContext context, WidgetRef ref) {
     final packPrice = 500;
 
     final success = ref.read(coinProvider.notifier).spendCoins(packPrice);
 
     if (success) {
-      final pulledCards = _generateDummyPull();
+      final pulledCards = generatePulls();
 
       ref.read(collectionProvider.notifier).addCards(pulledCards);
 
@@ -155,7 +176,7 @@ class ShopScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 40),
             ElevatedButton.icon(
-              onPressed: () => _buyAndOpenPack(context, ref),
+              onPressed: () => buyAndOpenPack(context, ref),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber,
                 foregroundColor: Colors.black,
