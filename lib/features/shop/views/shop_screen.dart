@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:cardx/core/providers/shop_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cards/models/card_model.dart';
 import '../../cards/models/card_rarity.dart';
 import '../../cards/models/player_stats.dart';
@@ -16,6 +17,7 @@ class ShopScreen extends ConsumerWidget {
   Future<List<CardModel>> generatePulls(WidgetRef ref, PackModel pack) async {
     final random = Random();
     final List<CardModel> pulledCards = [];
+    final supabase = Supabase.instance.client;
 
     // 1. Hole nur die passenden Spieler aus dem Supabase-Pool
     final repo = ref.read(shopRepoProvider);
@@ -42,13 +44,22 @@ class ShopScreen extends ConsumerWidget {
       }
 
       final player = filteredPool[random.nextInt(filteredPool.length)];
+      final club = player['clubs'];
+      final logoUrl = supabase.storage
+          .from('club-logos')
+          .getPublicUrl('${club['id']}.png');
+      final playerImageUrl = supabase.storage
+          .from('player-images')
+          .getPublicUrl('${player['id']}.png');
 
       pulledCards.add(
         CardModel(
           id: '${player['id']}_${rarity.name}',
           playerName: player['name'] as String,
           position: player['position'] as String,
-          teamName: player['club'] as String,
+          teamName: club['name'] as String,
+          teamLogoUrl: logoUrl,
+          playerImageUrl: playerImageUrl,
           rarity: rarity,
           stats: PlayerStats(
             goals: player['goals'] as int,

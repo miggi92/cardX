@@ -6,7 +6,8 @@ class CardModel {
   final String playerName;
   final String position;
   final String teamName;
-  final String? imageUrl;
+  final String teamLogoUrl;
+  final String playerImageUrl;
   final CardRarity rarity;
   final PlayerStats stats;
 
@@ -15,7 +16,8 @@ class CardModel {
     required this.playerName,
     required this.position,
     required this.teamName,
-    this.imageUrl,
+    required this.teamLogoUrl,
+    required this.playerImageUrl,
     required this.rarity,
     required this.stats,
   });
@@ -26,7 +28,8 @@ class CardModel {
       playerName: json['playerName'] as String,
       position: json['position'] as String,
       teamName: json['teamName'] as String,
-      imageUrl: json['imageUrl'] as String?,
+      teamLogoUrl: json['teamLogoUrl'] as String,
+      playerImageUrl: json['playerImageUrl'] as String,
       rarity: CardRarity.values.byName(json['rarity'] as String),
       stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>),
     );
@@ -38,7 +41,8 @@ class CardModel {
       'playerName': playerName,
       'position': position,
       'teamName': teamName,
-      'imageUrl': imageUrl,
+      'teamLogoUrl': teamLogoUrl,
+      'playerImageUrl': playerImageUrl,
       'rarity': rarity.name,
       'stats': stats.toJson(),
     };
