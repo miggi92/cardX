@@ -1,6 +1,7 @@
+import 'package:cardx/features/cards/views/collection_screen.dart';
+import 'package:cardx/features/dashboard/views/dashboard_screen.dart';
+import 'package:cardx/features/shop/views/shop_screen.dart';
 import 'package:flutter/material.dart';
-import '../../dashboard/views/dashboard_screen.dart';
-import '../../cards/views/collection_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -15,7 +16,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const CollectionScreen(),
-    const Scaffold(body: Center(child: Text('Shop - Demnächst verfügbar'))),
+    const ShopScreen(),
   ];
 
   @override
