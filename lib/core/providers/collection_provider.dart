@@ -36,6 +36,24 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
       _repository.saveCards(state);
     }
   }
+
+  void removeDuplicates() {
+    final Set<String> seenIds = {};
+    final List<CardModel> uniqueCards = [];
+
+    for (final card in state) {
+      if (!seenIds.contains(card.id)) {
+        seenIds.add(card.id);
+        uniqueCards.add(card);
+      }
+    }
+
+    // Nur speichern, wenn wirklich Duplikate entfernt wurden
+    if (state.length != uniqueCards.length) {
+      state = uniqueCards;
+      _repository.saveCards(state);
+    }
+  }
 }
 
 final collectionProvider =

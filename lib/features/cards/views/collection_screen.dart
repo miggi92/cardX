@@ -66,9 +66,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 onPressed: () {
                   ref.read(collectionProvider.notifier).removeCard(card.id);
                   ref.read(coinProvider.notifier).addCoins(sellValue);
-
                   Navigator.pop(context);
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -102,6 +100,54 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     );
   }
 
+  // NEU: Der Dialog für den Massen-Verkauf
+  void showBulkSellDialog(int duplicateCount, int totalValue) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Alle Duplikate verkaufen?'),
+          content: Text(
+            'Du stehst kurz davor, $duplicateCount doppelte Karten zu verkaufen. Dafür erhältst du $totalValue Coins.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Abbrechen',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // 1. Alle Duplikate auf einmal aus der Sammlung werfen
+                ref.read(collectionProvider.notifier).removeDuplicates();
+                // 2. Den berechneten Gesamtwert gutschreiben
+                ref.read(coinProvider.notifier).addCoins(totalValue);
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '$duplicateCount Karten für $totalValue Coins verkauft!',
+                    ),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Verkaufen'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final myCards = ref.watch(collectionProvider);
@@ -109,9 +155,17 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     final Map<String, int> cardCounts = {};
     final List<CardModel> uniqueCards = [];
 
+    // NEU: Zähler für die Duplikate und deren Gesamtwert
+    int totalDuplicateCount = 0;
+    int totalDuplicateValue = 0;
+
     for (final card in myCards) {
       if (cardCounts.containsKey(card.id)) {
         cardCounts[card.id] = cardCounts[card.id]! + 1;
+
+        // Jedes gefundene Duplikat zum Gesamtwert addieren
+        totalDuplicateCount++;
+        totalDuplicateValue += getSellValue(card.rarity);
       } else {
         cardCounts[card.id] = 1;
         uniqueCards.add(card);
@@ -183,24 +237,48 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           value: null,
                           child: Text('Alle Raritäten'),
                         ),
-                        ...CardRarity.values.map((rarity) {
-                          return DropdownMenuItem(
+                        ...CardRarity.values.map(
+                          (rarity) => DropdownMenuItem(
                             value: rarity,
                             child: Text(rarity.name.toUpperCase()),
-                          );
-                        }),
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRarity = value;
-                        });
-                      },
+                      onChanged: (value) =>
+                          setState(() => selectedRarity = value),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+
+          // NEU: Der Bulk-Sell Button, erscheint nur, wenn es Duplikate gibt!
+          if (totalDuplicateCount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () => showBulkSellDialog(
+                  totalDuplicateCount,
+                  totalDuplicateValue,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.monetization_on),
+                label: Text(
+                  'Alle doppelten verkaufen (+ $totalDuplicateValue Coins)',
+                ),
+              ),
+            ),
 
           Expanded(
             child: myCards.isEmpty
