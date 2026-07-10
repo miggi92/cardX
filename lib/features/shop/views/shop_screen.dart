@@ -45,6 +45,11 @@ class ShopScreen extends ConsumerWidget {
 
       final player = filteredPool[random.nextInt(filteredPool.length)];
       final club = player['clubs'];
+
+      if (club == null) {
+        continue; // Überspringt den Eintrag sicher, falls die Beziehungsdaten fehlen
+      }
+
       final logoUrl = supabase.storage
           .from('club-logos')
           .getPublicUrl('${club['id']}.png');

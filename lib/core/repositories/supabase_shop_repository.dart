@@ -7,9 +7,7 @@ class SupabaseShopRepository {
 
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase.from('packs').select();
-
     return response.map((json) {
-      // Wandelt das Text-Array aus der DB in Flutter Color-Objekte um
       final List<dynamic> colorsList = json['gradient_colors'];
       final List<Color> colors = colorsList.map((hex) {
         final hexColor = hex.replaceAll('#', '');
@@ -31,21 +29,17 @@ class SupabaseShopRepository {
     PackType type,
     String filterValue,
   ) async {
-    // Hier bestimmen wir dynamisch den Spaltennamen für die SQL-Where-Klausel
-    String column;
-    switch (type) {
-      case PackType.club:
-        column = 'club';
-        break;
-      case PackType.sport:
-        column = 'sport';
-        break;
-      case PackType.league:
-        column = 'league';
-        break;
+    if (type == PackType.club) {
+      return await _supabase
+          .from('player_pool')
+          .select('*, clubs!inner(*)')
+          .eq('clubs.name', filterValue);
     }
 
-    // Supabase filtert die Daten direkt auf dem Server
-    return await _supabase.from('player_pool').select().eq(column, filterValue);
+    final String column = type == PackType.sport ? 'sport' : 'league';
+    return await _supabase
+        .from('player_pool')
+        .select('*, clubs(*)')
+        .eq(column, filterValue);
   }
 }
