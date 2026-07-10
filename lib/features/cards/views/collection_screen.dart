@@ -36,8 +36,61 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     }
   }
 
-  void showQuickSellSheet(CardModel card, int count) {
-    final int sellValue = getSellValue(card.rarity);
+  int getRarityValue(CardRarity rarity) {
+    switch (rarity) {
+      case CardRarity.legendary:
+        return 4;
+      case CardRarity.epic:
+        return 3;
+      case CardRarity.rare:
+        return 2;
+      case CardRarity.common:
+        return 1;
+    }
+  }
+
+  Color getRarityColor(CardRarity rarity) {
+    switch (rarity) {
+      case CardRarity.legendary:
+        return Colors.orange;
+      case CardRarity.epic:
+        return Colors.purple;
+      case CardRarity.rare:
+        return Colors.blue;
+      case CardRarity.common:
+        return Colors.grey;
+    }
+  }
+
+  void sellCard(CardModel card, int sellValue) {
+    ref.read(collectionProvider.notifier).removeCard(card.id);
+    ref.read(coinProvider.notifier).addCoins(sellValue);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${card.playerName} (${card.rarity.name}) verkauft für $sellValue Coins!',
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void showPlayerDetailsSheet(String playerName, List<CardModel> cards) {
+    final Map<String, int> exactCounts = {};
+    final Map<String, CardModel> uniqueModels = {};
+
+    for (final card in cards) {
+      exactCounts[card.id] = (exactCounts[card.id] ?? 0) + 1;
+      uniqueModels[card.id] = card;
+    }
+
+    final sortedIds = uniqueModels.keys.toList()
+      ..sort(
+        (a, b) => getRarityValue(
+          uniqueModels[b]!.rarity,
+        ).compareTo(getRarityValue(uniqueModels[a]!.rarity)),
+      );
 
     showModalBottomSheet(
       context: context,
@@ -45,62 +98,95 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Karte verkaufen',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Du besitzt ${card.playerName} $count Mal. Möchtest du eine Kopie per Quick Sell verkaufen?',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ref.read(collectionProvider.notifier).removeCard(card.id);
-                  ref.read(coinProvider.notifier).addCoins(sellValue);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${card.playerName} verkauft für $sellValue Coins!',
-                      ),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 2),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    playerName,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                icon: const Icon(Icons.monetization_on),
-                label: Text('Quick Sell (+ $sellValue Coins)'),
+                  ),
+                  const SizedBox(height: 16),
+                  ...sortedIds.map((id) {
+                    final card = uniqueModels[id]!;
+                    final count = exactCounts[id]!;
+                    final sellValue = getSellValue(card.rarity);
+
+                    if (count == 0) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: getRarityColor(card.rarity),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${card.rarity.name.toUpperCase()} (x$count)',
+                              ),
+                            ],
+                          ),
+                          if (count > 1)
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                sellCard(card, sellValue);
+                                setSheetState(() {
+                                  exactCounts[id] = exactCounts[id]! - 1;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                              ),
+                              icon: const Icon(Icons.sell, size: 16),
+                              label: Text('Quick Sell (+$sellValue)'),
+                            )
+                          else
+                            const Text(
+                              'Letztes Exemplar',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Schließen',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Abbrechen',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  // NEU: Der Dialog für den Massen-Verkauf
   void showBulkSellDialog(int duplicateCount, int totalValue) {
     showDialog(
       context: context,
@@ -120,13 +206,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // 1. Alle Duplikate auf einmal aus der Sammlung werfen
                 ref.read(collectionProvider.notifier).removeDuplicates();
-                // 2. Den berechneten Gesamtwert gutschreiben
                 ref.read(coinProvider.notifier).addCoins(totalValue);
-
                 Navigator.pop(context);
-
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -148,59 +230,71 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     );
   }
 
+  Widget buildRarityBadge(CardRarity rarity, int count) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: getRarityColor(rarity),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Text(
+        'x$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final myCards = ref.watch(collectionProvider);
 
-    final Map<String, int> cardCounts = {};
-    final List<CardModel> uniqueCards = [];
-
-    // NEU: Zähler für die Duplikate und deren Gesamtwert
     int totalDuplicateCount = 0;
     int totalDuplicateValue = 0;
+    final Map<String, int> duplicateCheck = {};
 
     for (final card in myCards) {
-      if (cardCounts.containsKey(card.id)) {
-        cardCounts[card.id] = cardCounts[card.id]! + 1;
-
-        // Jedes gefundene Duplikat zum Gesamtwert addieren
+      if (duplicateCheck.containsKey(card.id)) {
         totalDuplicateCount++;
         totalDuplicateValue += getSellValue(card.rarity);
       } else {
-        cardCounts[card.id] = 1;
-        uniqueCards.add(card);
+        duplicateCheck[card.id] = 1;
       }
     }
 
     final String query = searchController.text.toLowerCase();
-
-    final List<CardModel> filteredCards = uniqueCards.where((card) {
+    final List<CardModel> filteredCards = myCards.where((card) {
       final matchesSearch = card.playerName.toLowerCase().contains(query);
       final matchesRarity =
           selectedRarity == null || card.rarity == selectedRarity;
       return matchesSearch && matchesRarity;
     }).toList();
 
-    final Map<String, List<CardModel>> groupedByTeam = {};
+    final Map<String, Map<String, List<CardModel>>> groupedByTeamAndPlayer = {};
     for (final card in filteredCards) {
-      if (!groupedByTeam.containsKey(card.teamName)) {
-        groupedByTeam[card.teamName] = [];
+      if (!groupedByTeamAndPlayer.containsKey(card.teamName)) {
+        groupedByTeamAndPlayer[card.teamName] = {};
       }
-      groupedByTeam[card.teamName]!.add(card);
+      if (!groupedByTeamAndPlayer[card.teamName]!.containsKey(
+        card.playerName,
+      )) {
+        groupedByTeamAndPlayer[card.teamName]![card.playerName] = [];
+      }
+      groupedByTeamAndPlayer[card.teamName]![card.playerName]!.add(card);
     }
 
-    for (final team in groupedByTeam.keys) {
-      groupedByTeam[team]!.sort((a, b) => a.playerName.compareTo(b.playerName));
-    }
-
-    final sortedTeamNames = groupedByTeam.keys.toList()..sort();
+    final sortedTeamNames = groupedByTeamAndPlayer.keys.toList()..sort();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Sammlung (${uniqueCards.length} / ${myCards.length} gesamt)',
-        ),
-      ),
+      appBar: AppBar(title: Text('Sammlung (${myCards.length} gesamt)')),
       body: Column(
         children: [
           Padding(
@@ -253,7 +347,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             ),
           ),
 
-          // NEU: Der Bulk-Sell Button, erscheint nur, wenn es Duplikate gibt!
           if (totalDuplicateCount > 0)
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -309,7 +402,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     itemCount: sortedTeamNames.length,
                     itemBuilder: (context, index) {
                       final teamName = sortedTeamNames[index];
-                      final teamCards = groupedByTeam[teamName]!;
+                      final playersMap = groupedByTeamAndPlayer[teamName]!;
+                      final sortedPlayerNames = playersMap.keys.toList()
+                        ..sort();
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +427,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  '${teamCards.length} Karten',
+                                  '${sortedPlayerNames.length} Spieler',
                                   style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
@@ -347,54 +442,109 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 16,
                                   mainAxisSpacing: 16,
-                                  childAspectRatio: 0.71,
+                                  childAspectRatio:
+                                      0.58, // <-- WICHTIG: Verhältnis angepasst, damit die Badges unten Platz haben!
                                 ),
-                            itemCount: teamCards.length,
-                            itemBuilder: (context, cardIndex) {
-                              final card = teamCards[cardIndex];
-                              final count = cardCounts[card.id]!;
+                            itemCount: sortedPlayerNames.length,
+                            itemBuilder: (context, playerIndex) {
+                              final playerName = sortedPlayerNames[playerIndex];
+                              final cardsOfPlayer = playersMap[playerName]!;
+
+                              cardsOfPlayer.sort(
+                                (a, b) => getRarityValue(
+                                  b.rarity,
+                                ).compareTo(getRarityValue(a.rarity)),
+                              );
+                              final bestCard = cardsOfPlayer.first;
+
+                              final Map<CardRarity, int> rarityCounts = {};
+                              for (final c in cardsOfPlayer) {
+                                rarityCounts[c.rarity] =
+                                    (rarityCounts[c.rarity] ?? 0) + 1;
+                              }
+
+                              final sortedRarities = rarityCounts.keys.toList()
+                                ..sort(
+                                  (a, b) => getRarityValue(
+                                    b,
+                                  ).compareTo(getRarityValue(a)),
+                                );
+
+                              // Logik für das "Mastered"-Feature (Alle Raritäten gesammelt)
+                              final bool hasAllRarities =
+                                  rarityCounts.length ==
+                                  CardRarity.values.length;
 
                               return GestureDetector(
-                                onTap: () {
-                                  if (count > 1) {
-                                    showQuickSellSheet(card, count);
-                                  }
-                                },
-                                child: Stack(
-                                  fit: StackFit.expand,
+                                onTap: () => showPlayerDetailsSheet(
+                                  playerName,
+                                  cardsOfPlayer,
+                                ),
+                                child: Column(
                                   children: [
-                                    CardWidget(card: card),
-                                    if (count > 1)
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent.shade700,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 2,
-                                            ),
-                                            boxShadow: const [
-                                              BoxShadow(
-                                                color: Colors.black54,
-                                                blurRadius: 4,
-                                                offset: Offset(2, 2),
+                                    Expanded(
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          CardWidget(card: bestCard),
+                                          // Die goldene Krone, wenn alle Raritäten gesammelt wurden
+                                          if (hasAllRarities)
+                                            const Positioned(
+                                              top: -8,
+                                              right: -8,
+                                              child: Icon(
+                                                Icons.workspace_premium,
+                                                color: Colors.amber,
+                                                size: 40,
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.black54,
+                                                    blurRadius: 4,
+                                                    offset: Offset(2, 2),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                          child: Text(
-                                            'x$count',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
                                             ),
-                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Die Leiste mit den Badges ist jetzt sauber unter der Karte
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: hasAllRarities
+                                            ? Colors.amber.withOpacity(0.15)
+                                            : Colors.black12,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: hasAllRarities
+                                            ? Border.all(
+                                                color: Colors.amber.shade700,
+                                                width: 1.5,
+                                              )
+                                            : null,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: sortedRarities
+                                              .map(
+                                                (r) => buildRarityBadge(
+                                                  r,
+                                                  rarityCounts[r]!,
+                                                ),
+                                              )
+                                              .toList(),
                                         ),
                                       ),
+                                    ),
                                   ],
                                 ),
                               );
