@@ -1,39 +1,17 @@
 class PlayerStats {
-  final int pace;
-  final int shooting;
-  final int passing;
-  final int dribbling;
-  final int defending;
-  final int physicality;
+  final int goals;
+  final int games;
 
-  const PlayerStats({
-    required this.pace,
-    required this.shooting,
-    required this.passing,
-    required this.dribbling,
-    required this.defending,
-    required this.physicality,
-  });
+  const PlayerStats({required this.goals, required this.games});
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) {
     return PlayerStats(
-      pace: json['pace'] as int,
-      shooting: json['shooting'] as int,
-      passing: json['passing'] as int,
-      dribbling: json['dribbling'] as int,
-      defending: json['defending'] as int,
-      physicality: json['physicality'] as int,
+      goals: json['goals'] as int,
+      games: json['games'] as int,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'pace': pace,
-      'shooting': shooting,
-      'passing': passing,
-      'dribbling': dribbling,
-      'defending': defending,
-      'physicality': physicality,
-    };
+    return {'goals': goals, 'games': games};
   }
 }

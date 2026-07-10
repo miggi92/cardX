@@ -46,14 +46,6 @@ class CardWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    card.overallRating.toString(),
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
                     card.position,
                     style: const TextStyle(
                       fontSize: 16,
@@ -103,17 +95,16 @@ class CardWidget extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatRow('PAC', card.stats.pace),
-            _buildStatRow('SHO', card.stats.shooting),
-            _buildStatRow('PAS', card.stats.passing),
+            _buildStatRow('Goals', card.stats.goals),
+            _buildStatRow('Games', card.stats.games),
           ],
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatRow('DRI', card.stats.dribbling),
-            _buildStatRow('DEF', card.stats.defending),
-            _buildStatRow('PHY', card.stats.physicality),
+            // _buildStatRow('DRI', card.stats.dribbling),
+            // _buildStatRow('DEF', card.stats.defending),
+            // _buildStatRow('PHY', card.stats.physicality),
           ],
         ),
       ],

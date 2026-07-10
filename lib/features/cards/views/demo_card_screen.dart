@@ -12,18 +12,10 @@ class DemoCardScreen extends StatelessWidget {
     final testCard = CardModel(
       id: '1',
       playerName: 'John Doe',
-      position: 'ST',
+      position: 'TW',
       teamName: 'Home Team',
       rarity: CardRarity.epic,
-      overallRating: 88,
-      stats: const PlayerStats(
-        pace: 85,
-        shooting: 90,
-        passing: 75,
-        dribbling: 82,
-        defending: 40,
-        physicality: 80,
-      ),
+      stats: const PlayerStats(goals: 30, games: 25),
     );
 
     return Scaffold(
