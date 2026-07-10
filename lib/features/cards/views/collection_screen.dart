@@ -4,19 +4,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../cards/models/card_model.dart';
+import '../../cards/models/card_rarity.dart';
 
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
 
-  // Diese Methode öffnet das Menü von unten
+  // 1. Neue Hilfsfunktion für die Berechnung des Verkaufswerts
+  int _getSellValue(CardRarity rarity) {
+    switch (rarity) {
+      case CardRarity.legendary:
+        return 200;
+      case CardRarity.epic:
+        return 100;
+      case CardRarity.rare:
+        return 50;
+      case CardRarity.common:
+        return 10;
+    }
+  }
+
+  // 2. Die Methode anpassen, sodass sie die Hilfsfunktion nutzt
   void _showQuickSellSheet(
     BuildContext context,
     WidgetRef ref,
     CardModel card,
     int count,
   ) {
-    // Definieren wir einen festen Verkaufswert, z.B. abhängig von der Rarity
-    final int sellValue = 100;
+    // Wert dynamisch basierend auf der Seltenheit berechnen
+    final int sellValue = _getSellValue(card.rarity);
 
     showModalBottomSheet(
       context: context,
@@ -43,15 +58,11 @@ class CollectionScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () {
-                  // 1. Karte aus der Sammlung entfernen
                   ref.read(collectionProvider.notifier).removeCard(card.id);
-                  // 2. Coins gutschreiben
                   ref.read(coinProvider.notifier).addCoins(sellValue);
 
-                  // 3. Menü schließen
                   Navigator.pop(context);
 
-                  // 4. Kleine Erfolgsmeldung anzeigen
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -135,7 +146,6 @@ class CollectionScreen extends ConsumerWidget {
                 final count = cardCounts[card.id]!;
 
                 return GestureDetector(
-                  // Klick-Logik: Nur öffnen, wenn man die Karte doppelt hat
                   onTap: () {
                     if (count > 1) {
                       _showQuickSellSheet(context, ref, card, count);
