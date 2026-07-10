@@ -79,6 +79,22 @@ class CardWidget extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Text(
+                    card.teamName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
               const Divider(color: Colors.white54, thickness: 1),
               _buildStatsGrid(),
             ],
@@ -99,12 +115,8 @@ class CardWidget extends StatelessWidget {
             _buildStatRow('Games', card.stats.games),
           ],
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // _buildStatRow('DRI', card.stats.dribbling),
-            // _buildStatRow('DEF', card.stats.defending),
-            // _buildStatRow('PHY', card.stats.physicality),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            
           ],
         ),
       ],
