@@ -20,6 +20,11 @@ class CoinNotifier extends Notifier<int> {
     }
     return false;
   }
+
+  void addCoins(int amount) {
+    state += amount;
+    _prefs.setInt(_coinsKey, state); // Dauerhaft speichern
+  }
 }
 
 final coinProvider = NotifierProvider<CoinNotifier, int>(() {

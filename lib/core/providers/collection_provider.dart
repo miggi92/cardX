@@ -31,6 +31,24 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
     );
     _prefs.setString(_collectionKey, encodedList);
   }
+
+  void removeCard(String cardId) {
+    // Finde die Position der ERSTEN Karte mit dieser ID
+    final index = state.indexWhere((card) => card.id == cardId);
+
+    if (index != -1) {
+      // Erstelle eine Kopie der Liste, entferne die Karte und aktualisiere den State
+      final newState = List<CardModel>.from(state);
+      newState.removeAt(index);
+      state = newState;
+
+      // Neue Liste dauerhaft speichern
+      final String encodedList = jsonEncode(
+        state.map((card) => card.toJson()).toList(),
+      );
+      _prefs.setString(_collectionKey, encodedList);
+    }
+  }
 }
 
 final collectionProvider =
