@@ -406,6 +406,12 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                       final sortedPlayerNames = playersMap.keys.toList()
                         ..sort();
 
+                      // Hole die Logo-URL dynamisch von der ersten Karte in dieser Vereins-Gruppe
+                      final String teamLogoUrl =
+                          playersMap[sortedPlayerNames.first]!
+                              .first
+                              .teamLogoUrl;
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -413,11 +419,28 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 16.0),
                             child: Row(
                               children: [
-                                const Icon(
-                                  Icons.shield,
-                                  color: Colors.blueAccent,
+                                // Das neue dynamische Vereinslogo mit Fallback-Icon
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  clipBehavior: Clip.hardEdge,
+                                  child: Image.network(
+                                    teamLogoUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.shield,
+                                        color: Colors.blueAccent,
+                                        size: 24,
+                                      );
+                                    },
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 12),
                                 Text(
                                   teamName,
                                   style: const TextStyle(
