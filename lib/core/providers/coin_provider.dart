@@ -1,27 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../repositories/coin_repository.dart';
-import '../repositories/local_coin_repository.dart';
-import 'storage_provider.dart';
+import '../repositories/supabase_coin_repository.dart';
 
-// 1. Der Repository-Provider (Hier wechselst du später einfach auf Supabase)
-final coinRepositoryProvider = Provider<CoinRepository>((ref) {
-  final prefs = ref.watch(sharedPrefsProvider);
-  return LocalCoinRepository(prefs);
-});
+// Wir injizieren jetzt das Supabase-Repository
+final coinRepoProvider = Provider((ref) => SupabaseCoinRepository());
 
-// 2. Der angepasste Notifier
 class CoinNotifier extends Notifier<int> {
-  late final CoinRepository _repository = ref.watch(coinRepositoryProvider);
+  late final _repository = ref.watch(coinRepoProvider);
 
   @override
   int build() {
-    return _repository.getCoins();
+    _loadInitialCoins();
+    return 1000; // Platzhalter, während die echten Coins geladen werden
+  }
+
+  Future<void> _loadInitialCoins() async {
+    try {
+      state = await _repository.getCoins();
+    } catch (e) {
+      print("Fehler beim Laden der Coins: $e");
+    }
   }
 
   bool spendCoins(int amount) {
     if (state >= amount) {
-      state -= amount;
-      _repository.saveCoins(state);
+      state -= amount; // Optimistic Update (UI sofort anpassen)
+      _repository.saveCoins(state); // Im Hintergrund an Supabase senden
       return true;
     }
     return false;

@@ -1,29 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/cards/models/card_model.dart';
-import '../repositories/collection_repository.dart';
-import '../repositories/local_collection_repository.dart';
-import 'storage_provider.dart';
+import '../repositories/supabase_collection_repository.dart';
 
-// 1. Der Repository-Provider
-final collectionRepositoryProvider = Provider<CollectionRepository>((ref) {
-  final prefs = ref.watch(sharedPrefsProvider);
-  return LocalCollectionRepository(prefs);
-});
+final collectionRepoProvider = Provider(
+  (ref) => SupabaseCollectionRepository(),
+);
 
-// 2. Der angepasste Notifier
 class CollectionNotifier extends Notifier<List<CardModel>> {
-  late final CollectionRepository _repository = ref.watch(
-    collectionRepositoryProvider,
-  );
+  late final _repository = ref.watch(collectionRepoProvider);
 
   @override
   List<CardModel> build() {
-    return _repository.getCards();
+    _loadInitialCards();
+    return [];
+  }
+
+  Future<void> _loadInitialCards() async {
+    try {
+      state = await _repository.getCards();
+    } catch (e) {
+      print("Fehler beim Laden der Karten: $e");
+    }
   }
 
   void addCards(List<CardModel> newCards) {
     state = [...state, ...newCards];
-    _repository.saveCards(state);
+    _repository.addCards(newCards);
   }
 
   void removeCard(String cardId) {
@@ -33,7 +35,8 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
       final newState = List<CardModel>.from(state);
       newState.removeAt(index);
       state = newState;
-      _repository.saveCards(state);
+
+      _repository.removeCard(cardId);
     }
   }
 
@@ -48,10 +51,9 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
       }
     }
 
-    // Nur speichern, wenn wirklich Duplikate entfernt wurden
     if (state.length != uniqueCards.length) {
       state = uniqueCards;
-      _repository.saveCards(state);
+      _repository.syncCollection(state);
     }
   }
 }
