@@ -103,6 +103,18 @@ class DashboardScreen extends ConsumerWidget {
     final myCards = ref.watch(collectionProvider);
     final uniqueCollectedCards = myCards.map((card) => card.id).toSet().length;
     final totalAvailableCards = ref.watch(totalAvailableCardsProvider);
+    final totalAvailableCardsBySport = ref.watch(
+      totalAvailableCardsBySportProvider,
+    );
+    final collectedIdsBySport = <String, Set<String>>{};
+    for (final card in myCards) {
+      final sport = _normalizeSportName(card.sport);
+      collectedIdsBySport.putIfAbsent(sport, () => <String>{}).add(card.id);
+    }
+    final collectedCardsBySport = {
+      for (final entry in collectedIdsBySport.entries)
+        entry.key: entry.value.length,
+    };
 
     final dailyReward = ref.watch(dailyRewardProvider);
     final canClaimReward = dailyReward.when(
@@ -180,10 +192,34 @@ class DashboardScreen extends ConsumerWidget {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            totalAvailableCardsBySport.when(
+              loading: () => _buildSportProgressSection(
+                context,
+                collectedBySport: collectedCardsBySport,
+                totalsBySport: const {},
+                isLoading: true,
+              ),
+              error: (_, _) => _buildSportProgressSection(
+                context,
+                collectedBySport: collectedCardsBySport,
+                totalsBySport: const {},
+              ),
+              data: (totalsBySport) => _buildSportProgressSection(
+                context,
+                collectedBySport: collectedCardsBySport,
+                totalsBySport: totalsBySport,
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _normalizeSportName(String rawSport) {
+    final normalized = rawSport.trim();
+    return normalized.isEmpty ? 'Unbekannt' : normalized;
   }
 
   Widget _buildHeroBanner(BuildContext context, WidgetRef ref, bool canClaim) {
@@ -466,6 +502,117 @@ class DashboardScreen extends ConsumerWidget {
             '$collected von $total Karten gesammelt',
             style: theme.textTheme.bodyMedium,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSportProgressSection(
+    BuildContext context, {
+    required Map<String, int> collectedBySport,
+    required Map<String, int> totalsBySport,
+    bool isLoading = false,
+  }) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+    final allSports = <String>{
+      ...totalsBySport.keys,
+      ...collectedBySport.keys,
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: brand.surfaceBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: brand.surfaceBorder),
+        boxShadow: [
+          BoxShadow(
+            color: brand.surfaceShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Fortschritt pro Sportart', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (isLoading)
+            Text(
+              'Sportarten werden geladen ...',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: brand.subtleText,
+              ),
+            )
+          else if (allSports.isEmpty)
+            Text(
+              'Keine Sportarten gefunden.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: brand.subtleText,
+              ),
+            )
+          else
+            ...allSports.asMap().entries.map((entry) {
+              final index = entry.key;
+              final sport = entry.value;
+              final collected = collectedBySport[sport] ?? 0;
+              final total = totalsBySport[sport] ?? 0;
+              final progress = total == 0
+                  ? null
+                  : (collected / total).clamp(0.0, 1.0);
+              final percentage = progress == null
+                  ? '...'
+                  : (progress * 100).toStringAsFixed(1);
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index == allSports.length - 1 ? 0 : 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            sport,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '$percentage%',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 10,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$collected von $total Karten gesammelt',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

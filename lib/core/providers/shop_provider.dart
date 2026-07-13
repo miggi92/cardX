@@ -16,3 +16,22 @@ final totalAvailableCardsProvider = FutureProvider<int>((ref) async {
   final players = await repo.getAllPlayers();
   return players.length * CardRarity.values.length;
 });
+
+final totalAvailableCardsBySportProvider = FutureProvider<Map<String, int>>((
+  ref,
+) async {
+  final repo = ref.watch(shopRepoProvider);
+  final players = await repo.getAllPlayers();
+  final countsBySport = <String, int>{};
+
+  for (final player in players) {
+    final rawSport = (player['sport'] as String?) ?? '';
+    final sport = rawSport.trim().isEmpty ? 'Unbekannt' : rawSport.trim();
+    countsBySport[sport] = (countsBySport[sport] ?? 0) + 1;
+  }
+
+  return countsBySport.map(
+    (sport, playerCount) =>
+        MapEntry(sport, playerCount * CardRarity.values.length),
+  );
+});
