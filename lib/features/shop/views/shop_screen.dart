@@ -140,7 +140,10 @@ class ShopScreen extends ConsumerWidget {
 
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => PackRevealScreen(cards: pulledCards),
+          builder: (context) => PackRevealScreen(
+            cards: pulledCards,
+            backLogoUrl: pack.type == PackType.club ? pack.logoUrl : null,
+          ),
         ),
       );
     } else {

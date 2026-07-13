@@ -5,8 +5,9 @@ import '../../cards/views/widgets/flip_card_widget.dart';
 
 class PackRevealScreen extends StatefulWidget {
   final List<CardModel> cards;
+  final String? backLogoUrl;
 
-  const PackRevealScreen({super.key, required this.cards});
+  const PackRevealScreen({super.key, required this.cards, this.backLogoUrl});
 
   @override
   State<PackRevealScreen> createState() => _PackRevealScreenState();
@@ -60,7 +61,10 @@ class _PackRevealScreenState extends State<PackRevealScreen> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                        child: FlipCardWidget(card: widget.cards[index]),
+                        child: FlipCardWidget(
+                          card: widget.cards[index],
+                          backLogoUrl: widget.backLogoUrl,
+                        ),
                       ),
                     );
                   },
