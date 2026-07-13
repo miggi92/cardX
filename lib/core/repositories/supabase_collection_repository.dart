@@ -22,11 +22,11 @@ class SupabaseCollectionRepository {
       final player = json['player_pool'];
       final club = player['clubs'];
 
-      final logoUrl = await _resolvePublicImageUrl(
+      final logoUrl = await _resolveImageUrl(
         bucketName: 'club-logos',
         objectId: '${club['id']}',
       );
-      final playerImageUrl = await _resolvePublicImageUrl(
+      final playerImageUrl = await _resolveImageUrl(
         bucketName: 'player-logo',
         objectId: '${player['id']}',
       );
@@ -95,7 +95,7 @@ class SupabaseCollectionRepository {
     }
   }
 
-  Future<String> _resolvePublicImageUrl({
+  Future<String> _resolveImageUrl({
     required String bucketName,
     required String objectId,
   }) async {
@@ -120,7 +120,9 @@ class SupabaseCollectionRepository {
         final preferred = _pickBestImageCandidate(matchingFiles);
         if (preferred != null) {
           final mimeType = _mimeTypeOf(preferred);
-          var url = storage.getPublicUrl(preferred.name);
+          var url = bucketName == 'club-logos'
+              ? storage.getPublicUrl(preferred.name)
+              : await storage.createSignedUrl(preferred.name, 60 * 60 * 24);
           if (_isSvgMime(mimeType)) {
             url = _tagWithSvgMime(url);
           }
@@ -136,7 +138,9 @@ class SupabaseCollectionRepository {
       final path = '$objectId.$extension';
       try {
         if (await storage.exists(path)) {
-          var url = storage.getPublicUrl(path);
+          var url = bucketName == 'club-logos'
+              ? storage.getPublicUrl(path)
+              : await storage.createSignedUrl(path, 60 * 60 * 24);
           if (extension == 'svg') {
             url = _tagWithSvgMime(url);
           }
@@ -148,7 +152,9 @@ class SupabaseCollectionRepository {
       }
     }
 
-    final fallbackUrl = storage.getPublicUrl('$objectId.png');
+    final fallbackUrl = bucketName == 'club-logos'
+        ? storage.getPublicUrl('$objectId.png')
+        : await storage.createSignedUrl('$objectId.png', 60 * 60 * 24);
     _resolvedImageUrlCache[cacheKey] = fallbackUrl;
     return fallbackUrl;
   }
