@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cardx/l10n/generated/app_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/sport_utils.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
@@ -94,6 +95,10 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _signOut() async {
+    await Supabase.instance.client.auth.signOut();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -127,6 +132,11 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.dashboardTitle),
         actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout_outlined),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(

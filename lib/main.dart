@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:cardx/features/auth/views/auth_screen.dart';
 import 'package:cardx/features/navigation/views/main_navigation_screen.dart';
 import 'package:cardx/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -22,11 +23,6 @@ void main() async {
     url: _supabaseUrl,
     publishableKey: _supabasePublishableKey,
   );
-
-  final supabase = Supabase.instance.client;
-  if (supabase.auth.currentUser == null) {
-    await supabase.auth.signInAnonymously();
-  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -56,7 +52,28 @@ class MyApp extends StatelessWidget {
           PointerDeviceKind.unknown,
         },
       ),
-      home: const MainNavigationScreen(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final supabase = Supabase.instance.client;
+
+    return StreamBuilder<AuthState>(
+      stream: supabase.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        final session = snapshot.data?.session ?? supabase.auth.currentSession;
+        if (session == null) {
+          return const AuthScreen();
+        }
+
+        return const MainNavigationScreen();
+      },
     );
   }
 }
