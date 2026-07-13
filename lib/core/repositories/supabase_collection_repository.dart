@@ -108,7 +108,7 @@ class SupabaseCollectionRepository {
 
     try {
       final files = await storage.list(
-        searchOptions: const SearchOptions(limit: 100, search: ''),
+        searchOptions: SearchOptions(limit: 50, search: objectId),
       );
 
       final matchingFiles = files
@@ -116,18 +116,16 @@ class SupabaseCollectionRepository {
           .toList();
 
       if (matchingFiles.isNotEmpty) {
-        final preferred = matchingFiles.firstWhere(
-          (file) => _isSupportedImageMime(_mimeTypeOf(file)),
-          orElse: () => matchingFiles.first,
-        );
-
-        final mimeType = _mimeTypeOf(preferred);
-        var url = storage.getPublicUrl(preferred.name);
-        if (_isSvgMime(mimeType)) {
-          url = _tagWithSvgMime(url);
+        final preferred = _pickBestImageCandidate(matchingFiles);
+        if (preferred != null) {
+          final mimeType = _mimeTypeOf(preferred);
+          var url = storage.getPublicUrl(preferred.name);
+          if (_isSvgMime(mimeType)) {
+            url = _tagWithSvgMime(url);
+          }
+          _resolvedImageUrlCache[cacheKey] = url;
+          return url;
         }
-        _resolvedImageUrlCache[cacheKey] = url;
-        return url;
       }
     } catch (_) {
       // Fall back to extension probing below.
@@ -155,7 +153,28 @@ class SupabaseCollectionRepository {
   }
 
   bool _matchesObjectId(String fileName, String objectId) {
-    return fileName == objectId || fileName.startsWith('$objectId.');
+    final normalizedFileName = fileName.toLowerCase();
+    final normalizedObjectId = objectId.toLowerCase();
+    return normalizedFileName == normalizedObjectId ||
+        normalizedFileName.startsWith('$normalizedObjectId.');
+  }
+
+  FileObject? _pickBestImageCandidate(List<FileObject> candidates) {
+    for (final file in candidates) {
+      final mimeType = _mimeTypeOf(file);
+      if (_isSupportedImageMime(mimeType)) {
+        return file;
+      }
+    }
+
+    for (final file in candidates) {
+      final lowerName = file.name.toLowerCase();
+      if (_fallbackExtensions.any((ext) => lowerName.endsWith('.$ext'))) {
+        return file;
+      }
+    }
+
+    return null;
   }
 
   String? _mimeTypeOf(FileObject file) {

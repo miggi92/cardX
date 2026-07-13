@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -40,6 +41,17 @@ class CardWidget extends StatelessWidget {
     required Widget fallback,
   }) {
     if (_isSvgUrl(url)) {
+      if (kIsWeb) {
+        return Image.network(
+          url,
+          fit: fit,
+          width: width,
+          height: height,
+          webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+          errorBuilder: (_, __, ___) => fallback,
+        );
+      }
+
       return SvgPicture.network(
         url,
         fit: fit,
