@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum PackType { club, sport, league }
+enum PackType { club, sport, league, organization }
 
 class PackModel {
   final String id;

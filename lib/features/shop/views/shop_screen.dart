@@ -104,6 +104,8 @@ class ShopScreen extends ConsumerWidget {
         return 'Sport Pack';
       case PackType.league:
         return 'League Pack';
+      case PackType.organization:
+        return 'Organization Pack';
     }
   }
 
@@ -115,6 +117,8 @@ class ShopScreen extends ConsumerWidget {
         return Icons.sports_soccer_outlined;
       case PackType.league:
         return Icons.emoji_events_outlined;
+      case PackType.organization:
+        return Icons.business_outlined;
     }
   }
 
