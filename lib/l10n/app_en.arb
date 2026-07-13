@@ -171,6 +171,10 @@
     }
   },
   "collectionGeneral": "General",
+  "rarityCommon": "Common",
+  "rarityRare": "Rare",
+  "rarityEpic": "Epic",
+  "rarityLegendary": "Legendary",
   "sportSoccer": "Soccer",
   "sportHandball": "Handball",
   "sportUnknown": "Unknown"

@@ -161,7 +161,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         content: Text(
           l10n.collectionSoldCardForCoins(
             card.playerName,
-            card.rarity.name.toUpperCase(),
+            _localizedRarityLabel(l10n, card.rarity, uppercase: true),
             sellValue,
           ),
         ),
@@ -248,7 +248,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      '${card.rarity.name.toUpperCase()} (x$count)',
+                                      '${_localizedRarityLabel(l10n, card.rarity, uppercase: true)} (x$count)',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -561,7 +561,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           ...CardRarity.values.map((rarity) {
             final color = getRarityColor(context, rarity);
             return buildLegendChip(
-              label: rarity.name.toUpperCase(),
+              label: _localizedRarityLabel(l10n, rarity, uppercase: true),
               icon: getRarityIcon(rarity),
               color: color,
               selected: selectedRarity == rarity,
@@ -793,7 +793,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                       top: 4.0,
                                     ),
                                     child: Text(
-                                      _localizedSportHeading(l10n, sport),
+                                      localizedSportLabel(
+                                        l10n,
+                                        sport,
+                                        unknownLabel: l10n.collectionGeneral,
+                                      ).toUpperCase(),
                                       style: theme.textTheme.labelLarge
                                           ?.copyWith(
                                             color: theme
@@ -899,19 +903,17 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     );
   }
 
-  String _localizedSportHeading(AppLocalizations l10n, String rawSport) {
-    final sportId = normalizeSportId(rawSport);
-    final label = switch (sportId) {
-      'soccer' => l10n.sportSoccer,
-      'handball' => l10n.sportHandball,
-      'unknown' => l10n.collectionGeneral,
-      _ =>
-        sportId
-            .split('_')
-            .where((part) => part.isNotEmpty)
-            .map((part) => part[0].toUpperCase() + part.substring(1))
-            .join(' '),
+  String _localizedRarityLabel(
+    AppLocalizations l10n,
+    CardRarity rarity, {
+    bool uppercase = false,
+  }) {
+    final value = switch (rarity) {
+      CardRarity.common => l10n.rarityCommon,
+      CardRarity.rare => l10n.rarityRare,
+      CardRarity.epic => l10n.rarityEpic,
+      CardRarity.legendary => l10n.rarityLegendary,
     };
-    return label.toUpperCase();
+    return uppercase ? value.toUpperCase() : value;
   }
 }

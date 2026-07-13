@@ -163,22 +163,6 @@ class ShopScreen extends ConsumerWidget {
     }
   }
 
-  String _localizedSportLabel(BuildContext context, String rawSport) {
-    final l10n = AppLocalizations.of(context)!;
-    final sportId = normalizeSportId(rawSport);
-    return switch (sportId) {
-      'soccer' => l10n.sportSoccer,
-      'handball' => l10n.sportHandball,
-      'unknown' => l10n.sportUnknown,
-      _ =>
-        sportId
-            .split('_')
-            .where((part) => part.isNotEmpty)
-            .map((part) => part[0].toUpperCase() + part.substring(1))
-            .join(' '),
-    };
-  }
-
   IconData _typeIcon(PackType type) {
     switch (type) {
       case PackType.club:
@@ -475,7 +459,7 @@ class ShopScreen extends ConsumerWidget {
                     Text(
                       l10n.shopCategoryLabel(
                         pack.type == PackType.sport
-                            ? _localizedSportLabel(context, pack.filterValue)
+                            ? localizedSportLabel(l10n, pack.filterValue)
                             : pack.filterValue,
                       ),
                       style: theme.textTheme.bodyMedium?.copyWith(

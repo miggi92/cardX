@@ -595,7 +595,7 @@ class DashboardScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            _sportLabelForId(l10n, sport),
+                            localizedSportLabelForId(l10n, sport),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
@@ -634,19 +634,5 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  String _sportLabelForId(AppLocalizations l10n, String sportId) {
-    return switch (sportId) {
-      'soccer' => l10n.sportSoccer,
-      'handball' => l10n.sportHandball,
-      'unknown' => l10n.sportUnknown,
-      _ =>
-        sportId
-            .split('_')
-            .where((part) => part.isNotEmpty)
-            .map((part) => part[0].toUpperCase() + part.substring(1))
-            .join(' '),
-    };
   }
 }

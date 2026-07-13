@@ -214,6 +214,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionGeneral => 'General';
 
   @override
+  String get rarityCommon => 'Common';
+
+  @override
+  String get rarityRare => 'Rare';
+
+  @override
+  String get rarityEpic => 'Epic';
+
+  @override
+  String get rarityLegendary => 'Legendary';
+
+  @override
   String get sportSoccer => 'Soccer';
 
   @override

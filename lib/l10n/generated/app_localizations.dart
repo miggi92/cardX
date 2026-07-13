@@ -426,6 +426,30 @@ abstract class AppLocalizations {
   /// **'General'**
   String get collectionGeneral;
 
+  /// No description provided for @rarityCommon.
+  ///
+  /// In en, this message translates to:
+  /// **'Common'**
+  String get rarityCommon;
+
+  /// No description provided for @rarityRare.
+  ///
+  /// In en, this message translates to:
+  /// **'Rare'**
+  String get rarityRare;
+
+  /// No description provided for @rarityEpic.
+  ///
+  /// In en, this message translates to:
+  /// **'Epic'**
+  String get rarityEpic;
+
+  /// No description provided for @rarityLegendary.
+  ///
+  /// In en, this message translates to:
+  /// **'Legendary'**
+  String get rarityLegendary;
+
   /// No description provided for @sportSoccer.
   ///
   /// In en, this message translates to:

@@ -2,7 +2,7 @@
   "@@locale": "de",
   "dashboardTitle": "CardX Dashboard",
   "dashboardFreePackAlreadyClaimed": "Gratis-Pack heute bereits abgeholt.",
-  "dashboardFreePackNoPlayersFound": "Keine Spieler fur das Gratis-Pack gefunden!",
+  "dashboardFreePackNoPlayersFound": "Keine Spieler für das Gratis-Pack gefunden!",
   "dashboardFreePackSaveFailed": "Gratis-Pack konnte nicht gespeichert werden.",
   "dashboardCardsSaveFailed": "Karten konnten nicht gespeichert werden.",
   "dashboardFreePackLoadError": "Fehler beim Laden des Gratis-Packs: {error}",
@@ -11,11 +11,11 @@
       "error": {}
     }
   },
-  "dashboardDailyFreePackTitle": "Tagliches Gratis-Pack",
+  "dashboardDailyFreePackTitle": "Tägliches Gratis-Pack",
   "dashboardDailyFreePackAvailableBody": "Hol dir jetzt neue Spieler und erweitere deine Sammlung.",
-  "dashboardDailyFreePackUnavailableBody": "Dein Gratis-Pack ist bereits geoffnet. Komm morgen fur das nachste zuruck.",
-  "dashboardOpenPackCta": "Pack offnen",
-  "dashboardAvailableTomorrowCta": "Morgen wieder verfugbar",
+  "dashboardDailyFreePackUnavailableBody": "Dein Gratis-Pack ist bereits geöffnet. Komm morgen für das nächste zurück.",
+  "dashboardOpenPackCta": "Pack öffnen",
+  "dashboardAvailableTomorrowCta": "Morgen wieder verfügbar",
   "dashboardCollectionLabel": "Sammlung",
   "dashboardCoinsLabel": "Coins",
   "dashboardCollectedCardsCount": "{count} Karten",
@@ -43,7 +43,7 @@
   "dashboardNoSportsFound": "Keine Sportarten gefunden.",
   "shopTitle": "Shop",
   "shopSubtitle": "Ziehe neue Spielerkarten und erweitere deine Sammlung.",
-  "shopNoPlayersForPackFound": "Keine Spieler fur dieses Pack gefunden!",
+  "shopNoPlayersForPackFound": "Keine Spieler für dieses Pack gefunden!",
   "shopPurchaseCanceledCoinsRefunded": "Kauf abgebrochen, Coins wurden erstattet.",
   "shopPurchaseFailedNotEnoughCoins": "Kauf fehlgeschlagen oder nicht genug Coins!",
   "shopPackTypeClub": "Club Pack",
@@ -64,7 +64,7 @@
       "category": {}
     }
   },
-  "shopOpenForCoins": "Fur {coins} Coins offnen",
+  "shopOpenForCoins": "Für {coins} Coins öffnen",
   "@shopOpenForCoins": {
     "placeholders": {
       "coins": {
@@ -72,7 +72,7 @@
       }
     }
   },
-  "shopCoinsRequired": "{coins} Coins benotigt",
+  "shopCoinsRequired": "{coins} Coins benötigt",
   "@shopCoinsRequired": {
     "placeholders": {
       "coins": {
@@ -86,7 +86,7 @@
       "error": {}
     }
   },
-  "shopPacksAvailable": "{count} Packs verfugbar",
+  "shopPacksAvailable": "{count} Packs verfügbar",
   "@shopPacksAvailable": {
     "placeholders": {
       "count": {
@@ -105,7 +105,7 @@
   "collectionSearchHint": "Spieler suchen...",
   "collectionSellCardFailed": "Karte konnte nicht verkauft werden.",
   "collectionCreditCoinsFailed": "Coins konnten nicht gutgeschrieben werden.",
-  "collectionSoldCardForCoins": "{playerName} ({rarity}) verkauft fur {coins} Coins!",
+  "collectionSoldCardForCoins": "{playerName} ({rarity}) verkauft für {coins} Coins!",
   "@collectionSoldCardForCoins": {
     "placeholders": {
       "playerName": {},
@@ -126,7 +126,7 @@
   "collectionLastCopy": "Letztes Exemplar",
   "collectionClose": "Schlie\u00dfen",
   "collectionSellAllDuplicatesTitle": "Alle Duplikate verkaufen?",
-  "collectionSellAllDuplicatesBody": "Du stehst kurz davor, {duplicateCount} doppelte Karten zu verkaufen. Dafur erhaltst du {totalValue} Coins.",
+  "collectionSellAllDuplicatesBody": "Du stehst kurz davor, {duplicateCount} doppelte Karten zu verkaufen. Dafür erhältst du {totalValue} Coins.",
   "@collectionSellAllDuplicatesBody": {
     "placeholders": {
       "duplicateCount": {
@@ -139,7 +139,7 @@
   },
   "collectionCancel": "Abbrechen",
   "collectionSellDuplicatesFailed": "Duplikate konnten nicht verkauft werden.",
-  "collectionSoldDuplicatesForCoins": "{duplicateCount} Karten fur {totalValue} Coins verkauft!",
+  "collectionSoldDuplicatesForCoins": "{duplicateCount} Karten für {totalValue} Coins verkauft!",
   "@collectionSoldDuplicatesForCoins": {
     "placeholders": {
       "duplicateCount": {
@@ -171,6 +171,10 @@
     }
   },
   "collectionGeneral": "Allgemein",
+  "rarityCommon": "Gewöhnlich",
+  "rarityRare": "Selten",
+  "rarityEpic": "Episch",
+  "rarityLegendary": "Legendär",
   "sportSoccer": "Fußball",
   "sportHandball": "Handball",
   "sportUnknown": "Unbekannt"

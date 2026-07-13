@@ -17,7 +17,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardFreePackNoPlayersFound =>
-      'Keine Spieler fur das Gratis-Pack gefunden!';
+      'Keine Spieler für das Gratis-Pack gefunden!';
 
   @override
   String get dashboardFreePackSaveFailed =>
@@ -33,7 +33,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get dashboardDailyFreePackTitle => 'Tagliches Gratis-Pack';
+  String get dashboardDailyFreePackTitle => 'Tägliches Gratis-Pack';
 
   @override
   String get dashboardDailyFreePackAvailableBody =>
@@ -41,13 +41,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardDailyFreePackUnavailableBody =>
-      'Dein Gratis-Pack ist bereits geoffnet. Komm morgen fur das nachste zuruck.';
+      'Dein Gratis-Pack ist bereits geöffnet. Komm morgen für das nächste zurück.';
 
   @override
-  String get dashboardOpenPackCta => 'Pack offnen';
+  String get dashboardOpenPackCta => 'Pack öffnen';
 
   @override
-  String get dashboardAvailableTomorrowCta => 'Morgen wieder verfugbar';
+  String get dashboardAvailableTomorrowCta => 'Morgen wieder verfügbar';
 
   @override
   String get dashboardCollectionLabel => 'Sammlung';
@@ -86,7 +86,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shopNoPlayersForPackFound =>
-      'Keine Spieler fur dieses Pack gefunden!';
+      'Keine Spieler für dieses Pack gefunden!';
 
   @override
   String get shopPurchaseCanceledCoinsRefunded =>
@@ -120,12 +120,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String shopOpenForCoins(int coins) {
-    return 'Fur $coins Coins offnen';
+    return 'Für $coins Coins öffnen';
   }
 
   @override
   String shopCoinsRequired(int coins) {
-    return '$coins Coins benotigt';
+    return '$coins Coins benötigt';
   }
 
   @override
@@ -135,7 +135,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String shopPacksAvailable(int count) {
-    return '$count Packs verfugbar';
+    return '$count Packs verfügbar';
   }
 
   @override
@@ -159,7 +159,7 @@ class AppLocalizationsDe extends AppLocalizations {
     Object rarity,
     int coins,
   ) {
-    return '$playerName ($rarity) verkauft fur $coins Coins!';
+    return '$playerName ($rarity) verkauft für $coins Coins!';
   }
 
   @override
@@ -178,7 +178,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String collectionSellAllDuplicatesBody(int duplicateCount, int totalValue) {
-    return 'Du stehst kurz davor, $duplicateCount doppelte Karten zu verkaufen. Dafur erhaltst du $totalValue Coins.';
+    return 'Du stehst kurz davor, $duplicateCount doppelte Karten zu verkaufen. Dafür erhältst du $totalValue Coins.';
   }
 
   @override
@@ -190,7 +190,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String collectionSoldDuplicatesForCoins(int duplicateCount, int totalValue) {
-    return '$duplicateCount Karten fur $totalValue Coins verkauft!';
+    return '$duplicateCount Karten für $totalValue Coins verkauft!';
   }
 
   @override
@@ -217,6 +217,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionGeneral => 'Allgemein';
+
+  @override
+  String get rarityCommon => 'Gewöhnlich';
+
+  @override
+  String get rarityRare => 'Selten';
+
+  @override
+  String get rarityEpic => 'Episch';
+
+  @override
+  String get rarityLegendary => 'Legendär';
 
   @override
   String get sportSoccer => 'Fußball';
