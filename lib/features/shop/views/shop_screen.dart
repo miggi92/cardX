@@ -118,6 +118,80 @@ class ShopScreen extends ConsumerWidget {
     }
   }
 
+  IconData _sportIconFor(String sport) {
+    final value = sport.toLowerCase();
+    if (value.contains('fussball') ||
+        value.contains('fußball') ||
+        value.contains('soccer') ||
+        value.contains('football')) {
+      return Icons.sports_soccer_outlined;
+    }
+    if (value.contains('basket')) {
+      return Icons.sports_basketball_outlined;
+    }
+    if (value.contains('tennis')) {
+      return Icons.sports_tennis_outlined;
+    }
+    if (value.contains('hockey')) {
+      return Icons.sports_hockey_outlined;
+    }
+    if (value.contains('baseball')) {
+      return Icons.sports_baseball_outlined;
+    }
+    if (value.contains('golf')) {
+      return Icons.sports_golf_outlined;
+    }
+    if (value.contains('volley')) {
+      return Icons.sports_volleyball_outlined;
+    }
+    return Icons.sports_outlined;
+  }
+
+  Widget _buildCenterPackEmblem(PackModel pack) {
+    final isClubWithLogo =
+        pack.type == PackType.club &&
+        pack.logoUrl != null &&
+        pack.logoUrl!.isNotEmpty;
+
+    return Container(
+      width: 180,
+      height: 180,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.58),
+          width: 2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2B000000),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(10),
+      child: isClubWithLogo
+          ? Image.network(
+              pack.logoUrl!,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                _typeIcon(pack.type),
+                color: Colors.white,
+                size: 72,
+              ),
+            )
+          : Icon(
+              pack.type == PackType.sport
+                  ? _sportIconFor(pack.filterValue)
+                  : _typeIcon(pack.type),
+              color: Colors.white,
+              size: 72,
+            ),
+    );
+  }
+
   Widget _buildPackLogo(PackModel pack) {
     final logoUrl = pack.logoUrl;
     if (pack.type != PackType.club || logoUrl == null || logoUrl.isEmpty) {
@@ -342,42 +416,9 @@ class ShopScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (pack.type == PackType.club &&
-                  pack.logoUrl != null &&
-                  pack.logoUrl!.isNotEmpty)
-                Center(
-                  child: IgnorePointer(
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.58),
-                          width: 2,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x2B000000),
-                            blurRadius: 14,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      child: Image.network(
-                        pack.logoUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          _typeIcon(pack.type),
-                          color: Colors.black54,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              Center(
+                child: IgnorePointer(child: _buildCenterPackEmblem(pack)),
+              ),
             ],
           ),
         ),
