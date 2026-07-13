@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/coin_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../cards/models/card_model.dart';
 import '../../cards/models/card_rarity.dart';
 
@@ -63,15 +64,16 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   Future<bool> sellCard(CardModel card, int sellValue) async {
+    final theme = Theme.of(context);
     final removed = await ref
         .read(collectionProvider.notifier)
         .removeCard(card.id);
     if (!removed) {
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Karte konnte nicht verkauft werden.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Karte konnte nicht verkauft werden.'),
+          backgroundColor: theme.colorScheme.error,
         ),
       );
       return false;
@@ -81,9 +83,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     if (!credited) {
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Coins konnten nicht gutgeschrieben werden.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Coins konnten nicht gutgeschrieben werden.'),
+          backgroundColor: theme.colorScheme.error,
         ),
       );
       return false;
@@ -95,7 +97,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         content: Text(
           '${card.playerName} (${card.rarity.name}) verkauft für $sellValue Coins!',
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: theme.colorScheme.primary,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -103,6 +105,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   void showPlayerDetailsSheet(String playerName, List<CardModel> cards) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final Map<String, int> exactCounts = {};
     final Map<String, CardModel> uniqueModels = {};
 
@@ -120,10 +124,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        side: BorderSide(color: brand.surfaceBorder),
       ),
       builder: (context) {
+        final sheetTheme = Theme.of(context);
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
@@ -134,7 +141,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 children: [
                   Text(
                     playerName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: sheetTheme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -179,8 +186,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 });
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber,
-                                foregroundColor: Colors.black,
+                                backgroundColor:
+                                    sheetTheme.colorScheme.primaryContainer,
+                                foregroundColor:
+                                    sheetTheme.colorScheme.onPrimaryContainer,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                 ),
@@ -189,9 +198,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               label: Text('Quick Sell (+$sellValue)'),
                             )
                           else
-                            const Text(
+                            Text(
                               'Letztes Exemplar',
-                              style: TextStyle(color: Colors.grey),
+                              style: sheetTheme.textTheme.bodyMedium,
                             ),
                         ],
                       ),
@@ -201,9 +210,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   Center(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
+                      child: Text(
                         'Schließen',
-                        style: TextStyle(color: Colors.grey),
+                        style: sheetTheme.textTheme.labelLarge,
                       ),
                     ),
                   ),
@@ -217,9 +226,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   void showBulkSellDialog(int duplicateCount, int totalValue) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) {
+        final dialogTheme = Theme.of(context);
         return AlertDialog(
           title: const Text('Alle Duplikate verkaufen?'),
           content: Text(
@@ -228,10 +239,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Abbrechen',
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: Text('Abbrechen', style: dialogTheme.textTheme.labelLarge),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -242,9 +250,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Duplikate konnten nicht verkauft werden.'),
-                      backgroundColor: Colors.red,
+                    SnackBar(
+                      content: const Text(
+                        'Duplikate konnten nicht verkauft werden.',
+                      ),
+                      backgroundColor: theme.colorScheme.error,
                     ),
                   );
                   return;
@@ -257,11 +267,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
+                    SnackBar(
+                      content: const Text(
                         'Coins konnten nicht gutgeschrieben werden.',
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: theme.colorScheme.error,
                     ),
                   );
                   return;
@@ -275,13 +285,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     content: Text(
                       '$duplicateCount Karten für $totalValue Coins verkauft!',
                     ),
-                    backgroundColor: Colors.green,
+                    backgroundColor: theme.colorScheme.primary,
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                foregroundColor: theme.colorScheme.onPrimaryContainer,
               ),
               child: const Text('Verkaufen'),
             ),
@@ -292,13 +302,15 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   Widget buildRarityBadge(CardRarity rarity, int count) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     return Container(
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: getRarityColor(rarity),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white, width: 1.5),
+        border: Border.all(color: brand.surfaceBackground, width: 1.5),
         boxShadow: const [
           BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2)),
         ],
@@ -316,6 +328,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final myCards = ref.watch(collectionProvider);
 
     int totalDuplicateCount = 0;
@@ -370,7 +384,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                       hintText: 'Spieler suchen...',
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
@@ -380,13 +394,14 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
+                    color: brand.surfaceBackground.withValues(alpha: 0.8),
+                    border: Border.all(color: brand.surfaceBorder),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<CardRarity?>(
                       value: selectedRarity,
-                      hint: const Text('Alle'),
+                      hint: Text('Alle', style: theme.textTheme.labelLarge),
                       items: [
                         const DropdownMenuItem(
                           value: null,
@@ -420,12 +435,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   totalDuplicateValue,
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 icon: const Icon(Icons.monetization_on),
                 label: Text(
@@ -443,18 +453,23 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         Icon(
                           Icons.style,
                           size: 80,
-                          color: Colors.grey.shade400,
+                          color: theme.colorScheme.outlineVariant,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Deine Sammlung ist noch leer.',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                          style: theme.textTheme.titleMedium,
                         ),
                       ],
                     ),
                   )
                 : filteredCards.isEmpty
-                ? const Center(child: Text('Keine Spieler gefunden.'))
+                ? Center(
+                    child: Text(
+                      'Keine Spieler gefunden.',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -485,7 +500,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.withValues(alpha: 0.1),
+                                    color: brand.surfaceBackground.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
                                   clipBehavior: Clip.hardEdge,
@@ -504,15 +521,12 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 const SizedBox(width: 12),
                                 Text(
                                   teamName,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: theme.textTheme.titleLarge,
                                 ),
                                 const Spacer(),
                                 Text(
                                   '${sortedPlayerNames.length} Spieler',
-                                  style: const TextStyle(color: Colors.grey),
+                                  style: theme.textTheme.bodyMedium,
                                 ),
                               ],
                             ),
@@ -606,7 +620,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                             ? Colors.amber.withValues(
                                                 alpha: 0.15,
                                               )
-                                            : Colors.black12,
+                                            : brand.surfaceBackground
+                                                  .withValues(alpha: 0.55),
                                         borderRadius: BorderRadius.circular(12),
                                         border: hasAllRarities
                                             ? Border.all(
@@ -636,7 +651,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               );
                             },
                           ),
-                          const Divider(height: 48, thickness: 2),
+                          Divider(
+                            height: 48,
+                            thickness: 2,
+                            color: theme.colorScheme.outlineVariant,
+                          ),
                         ],
                       );
                     },
