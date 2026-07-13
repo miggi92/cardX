@@ -303,30 +303,124 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     );
   }
 
-  Widget buildRarityBadge(CardRarity rarity, int count) {
+  IconData getRarityIcon(CardRarity rarity) {
+    switch (rarity) {
+      case CardRarity.common:
+        return Icons.adjust;
+      case CardRarity.rare:
+        return Icons.bolt;
+      case CardRarity.epic:
+        return Icons.auto_awesome;
+      case CardRarity.legendary:
+        return Icons.workspace_premium;
+    }
+  }
+
+  Widget buildRarityTrack(
+    Map<CardRarity, int> rarityCounts, {
+    required bool hasAllRarities,
+  }) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
+
     return Container(
-      margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       decoration: BoxDecoration(
-        color: getRarityColor(context, rarity),
+        color: hasAllRarities
+            ? Colors.amber.withValues(alpha: 0.12)
+            : brand.surfaceBackground.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: brand.surfaceBackground, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: brand.cardShadow,
-            blurRadius: 2,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Text(
-        'x$count',
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: brand.cardTextPrimary,
-          fontSize: 12,
+        border: Border.all(
+          color: hasAllRarities ? Colors.amber.shade700 : brand.surfaceBorder,
+          width: hasAllRarities ? 1.8 : 1.2,
         ),
+      ),
+      child: Row(
+        children: CardRarity.values.map((rarity) {
+          final count = rarityCounts[rarity] ?? 0;
+          final owned = count > 0;
+          final rarityColor = getRarityColor(context, rarity);
+
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: owned
+                    ? rarityColor.withValues(alpha: 0.20)
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.55,
+                      ),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: owned
+                      ? rarityColor.withValues(alpha: 0.85)
+                      : theme.colorScheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    owned ? getRarityIcon(rarity) : Icons.lock_outline,
+                    size: 16,
+                    color: owned
+                        ? rarityColor
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    count.toString(),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 12,
+                      color: owned
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget buildRarityLegend() {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: brand.surfaceBackground.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: brand.surfaceBorder),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: CardRarity.values.map((rarity) {
+          final color = getRarityColor(context, rarity);
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(getRarityIcon(rarity), size: 14, color: color),
+              const SizedBox(width: 4),
+              Text(
+                rarity.name.toUpperCase(),
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -427,6 +521,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               ],
             ),
           ),
+
+          if (myCards.isNotEmpty) ...[
+            buildRarityLegend(),
+            const SizedBox(height: 8),
+          ],
 
           if (totalDuplicateCount > 0)
             Padding(
@@ -566,13 +665,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     (rarityCounts[c.rarity] ?? 0) + 1;
                               }
 
-                              final sortedRarities = rarityCounts.keys.toList()
-                                ..sort(
-                                  (a, b) => getRarityValue(
-                                    b,
-                                  ).compareTo(getRarityValue(a)),
-                                );
-
                               // Logik für das "Mastered"-Feature (Alle Raritäten gesammelt)
                               final bool hasAllRarities =
                                   rarityCounts.length ==
@@ -589,67 +681,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                       child: Stack(
                                         fit: StackFit.expand,
                                         clipBehavior: Clip.none,
-                                        children: [
-                                          CardWidget(card: bestCard),
-                                          // Die goldene Krone, wenn alle Raritäten gesammelt wurden
-                                          if (hasAllRarities)
-                                            const Positioned(
-                                              top: -8,
-                                              right: -8,
-                                              child: Icon(
-                                                Icons.workspace_premium,
-                                                color: Colors.amber,
-                                                size: 40,
-                                                shadows: [
-                                                  Shadow(
-                                                    color: Colors.black54,
-                                                    blurRadius: 4,
-                                                    offset: Offset(2, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                        ],
+                                        children: [CardWidget(card: bestCard)],
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    // Die Leiste mit den Badges ist jetzt sauber unter der Karte
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 6,
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: hasAllRarities
-                                            ? Colors.amber.withValues(
-                                                alpha: 0.15,
-                                              )
-                                            : brand.surfaceBackground
-                                                  .withValues(alpha: 0.55),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: hasAllRarities
-                                            ? Border.all(
-                                                color: Colors.amber.shade700,
-                                                width: 1.5,
-                                              )
-                                            : null,
-                                      ),
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: sortedRarities
-                                              .map(
-                                                (r) => buildRarityBadge(
-                                                  r,
-                                                  rarityCounts[r]!,
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
-                                      ),
+                                    buildRarityTrack(
+                                      rarityCounts,
+                                      hasAllRarities: hasAllRarities,
                                     ),
                                   ],
                                 ),
