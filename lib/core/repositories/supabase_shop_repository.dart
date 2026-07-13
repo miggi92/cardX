@@ -37,7 +37,7 @@ class SupabaseShopRepository {
         final clubName = club['name'] as String?;
         final clubId = club['id'];
         if (clubName != null && clubId != null) {
-          clubLogoByName[clubName] = await _resolvePublicImageUrl(
+          clubLogoByName[clubName] = await _resolveImageUrl(
             bucketName: 'club-logos',
             objectId: '$clubId',
           );
@@ -126,14 +126,14 @@ class SupabaseShopRepository {
       final playerId = '${player['id']}';
 
       if (!clubLogoById.containsKey(clubId)) {
-        clubLogoById[clubId] = await _resolvePublicImageUrl(
+        clubLogoById[clubId] = await _resolveImageUrl(
           bucketName: 'club-logos',
           objectId: clubId,
         );
       }
 
       if (!playerImageById.containsKey(playerId)) {
-        playerImageById[playerId] = await _resolvePublicImageUrl(
+        playerImageById[playerId] = await _resolveImageUrl(
           bucketName: 'player-images',
           objectId: playerId,
         );
@@ -169,7 +169,7 @@ class SupabaseShopRepository {
     return pulledCards;
   }
 
-  Future<String> _resolvePublicImageUrl({
+  Future<String> _resolveImageUrl({
     required String bucketName,
     required String objectId,
   }) async {
@@ -194,7 +194,9 @@ class SupabaseShopRepository {
         final preferred = _pickBestImageCandidate(matchingFiles);
         if (preferred != null) {
           final mimeType = _mimeTypeOf(preferred);
-          var url = storage.getPublicUrl(preferred.name);
+          var url = bucketName == 'club-logos'
+              ? storage.getPublicUrl(preferred.name)
+              : await storage.createSignedUrl(preferred.name, 60 * 60 * 24);
           if (_isSvgMime(mimeType)) {
             url = _tagWithSvgMime(url);
           }
@@ -210,7 +212,9 @@ class SupabaseShopRepository {
       final path = '$objectId.$extension';
       try {
         if (await storage.exists(path)) {
-          var url = storage.getPublicUrl(path);
+          var url = bucketName == 'club-logos'
+              ? storage.getPublicUrl(path)
+              : await storage.createSignedUrl(path, 60 * 60 * 24);
           if (extension == 'svg') {
             url = _tagWithSvgMime(url);
           }
@@ -222,7 +226,9 @@ class SupabaseShopRepository {
       }
     }
 
-    final fallbackUrl = storage.getPublicUrl('$objectId.png');
+    final fallbackUrl = bucketName == 'club-logos'
+        ? storage.getPublicUrl('$objectId.png')
+        : await storage.createSignedUrl('$objectId.png', 60 * 60 * 24);
     _resolvedImageUrlCache[cacheKey] = fallbackUrl;
     return fallbackUrl;
   }
