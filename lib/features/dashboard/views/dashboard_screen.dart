@@ -4,45 +4,64 @@ import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/daily_reward_provider.dart';
 import '../../../core/providers/shop_provider.dart';
-import '../../cards/models/card_model.dart';
-import '../../cards/models/card_rarity.dart';
-import '../../cards/models/player_stats.dart';
 import '../../shop/views/pack_reveal_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  List<CardModel> _generateFreePull() {
-    return [
-      const CardModel(
-        id: '4',
-        playerName: 'Freier Spieler',
-        position: 'MF',
-        teamName: 'FC Musterstadt',
-        rarity: CardRarity.common,
-        stats: PlayerStats(goals: 0, games: 0),
-        teamLogoUrl: '',
-        playerImageUrl: '',
-      ),
-    ];
-  }
-
-  void _claimFreePack(BuildContext context, WidgetRef ref) {
-    ref.read(dailyRewardProvider.notifier).claimReward();
-    final pulledCards = _generateFreePull();
-    ref.read(collectionProvider.notifier).addCards(pulledCards);
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PackRevealScreen(cards: pulledCards),
-      ),
+  Future<void> _claimFreePack(BuildContext context, WidgetRef ref) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final repo = ref.read(shopRepoProvider);
+      final pulledCards = await repo.generateRandomCardsFromAllPlayers(
+        count: 10,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.of(context, rootNavigator: true).pop();
+
+      if (pulledCards.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Keine Spieler für das Gratis-Pack gefunden!'),
+          ),
+        );
+        return;
+      }
+
+      ref.read(dailyRewardProvider.notifier).claimReward();
+      ref.read(collectionProvider.notifier).addCards(pulledCards);
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PackRevealScreen(cards: pulledCards),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler beim Laden des Gratis-Packs: $error')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentCoins = ref.watch(coinProvider);
     final myCards = ref.watch(collectionProvider);
+    final uniqueCollectedCards = myCards.map((card) => card.id).toSet().length;
     final totalAvailableCards = ref.watch(totalAvailableCardsProvider);
 
     ref.watch(dailyRewardProvider);
@@ -100,14 +119,16 @@ class DashboardScreen extends ConsumerWidget {
             _buildQuickActionsGrid(),
             const SizedBox(height: 32),
             totalAvailableCards.when(
-              loading: () => _buildProgressSection(myCards.length, 0, null),
-              error: (_, __) => _buildProgressSection(myCards.length, 0, null),
+              loading: () =>
+                  _buildProgressSection(uniqueCollectedCards, 0, null),
+              error: (_, _) =>
+                  _buildProgressSection(uniqueCollectedCards, 0, null),
               data: (maxCardsInSet) {
                 final progressValue = maxCardsInSet == 0
                     ? 0.0
-                    : (myCards.length / maxCardsInSet).clamp(0.0, 1.0);
+                    : (uniqueCollectedCards / maxCardsInSet).clamp(0.0, 1.0);
                 return _buildProgressSection(
-                  myCards.length,
+                  uniqueCollectedCards,
                   maxCardsInSet,
                   progressValue,
                 );
