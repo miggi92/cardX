@@ -392,6 +392,53 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
 
+    Widget buildLegendChip({
+      required String label,
+      required IconData icon,
+      required Color color,
+      required bool selected,
+      required VoidCallback onTap,
+    }) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected
+                ? color.withValues(alpha: 0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? color : brand.surfaceBorder,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? color : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 11,
+                  color: selected
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -404,23 +451,29 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         spacing: 12,
         runSpacing: 8,
         alignment: WrapAlignment.center,
-        children: CardRarity.values.map((rarity) {
-          final color = getRarityColor(context, rarity);
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(getRarityIcon(rarity), size: 14, color: color),
-              const SizedBox(width: 4),
-              Text(
-                rarity.name.toUpperCase(),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          );
-        }).toList(),
+        children: [
+          buildLegendChip(
+            label: 'ALLE',
+            icon: Icons.grid_view,
+            color: theme.colorScheme.primary,
+            selected: selectedRarity == null,
+            onTap: () => setState(() => selectedRarity = null),
+          ),
+          ...CardRarity.values.map((rarity) {
+            final color = getRarityColor(context, rarity);
+            return buildLegendChip(
+              label: rarity.name.toUpperCase(),
+              icon: getRarityIcon(rarity),
+              color: color,
+              selected: selectedRarity == rarity,
+              onTap: () {
+                setState(() {
+                  selectedRarity = selectedRarity == rarity ? null : rarity;
+                });
+              },
+            );
+          }),
+        ],
       ),
     );
   }
@@ -473,52 +526,17 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: (value) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'Spieler suchen...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                  ),
+            child: TextField(
+              controller: searchController,
+              onChanged: (value) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Spieler suchen...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: brand.surfaceBackground.withValues(alpha: 0.8),
-                    border: Border.all(color: brand.surfaceBorder),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<CardRarity?>(
-                      value: selectedRarity,
-                      hint: Text('Alle', style: theme.textTheme.labelLarge),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('Alle Raritäten'),
-                        ),
-                        ...CardRarity.values.map(
-                          (rarity) => DropdownMenuItem(
-                            value: rarity,
-                            child: Text(rarity.name.toUpperCase()),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setState(() => selectedRarity = value),
-                    ),
-                  ),
-                ),
-              ],
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
             ),
           ),
 
