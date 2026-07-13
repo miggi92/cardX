@@ -22,7 +22,7 @@ class SupabaseCollectionRepository {
           .from('club-logos')
           .getPublicUrl('${club['id']}.png');
       final playerImageUrl = _supabase.storage
-          .from('player-images')
+          .from('player-logo')
           .getPublicUrl('${player['id']}.png');
 
       final logicalCardId = '${player['id']}_${json['rarity']}';
