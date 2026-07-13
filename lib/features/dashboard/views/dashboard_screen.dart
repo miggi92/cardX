@@ -4,6 +4,7 @@ import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/daily_reward_provider.dart';
 import '../../../core/providers/shop_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../shop/views/pack_reveal_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -96,6 +97,8 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final currentCoins = ref.watch(coinProvider);
     final myCards = ref.watch(collectionProvider);
     final uniqueCollectedCards = myCards.map((card) => card.id).toSet().length;
@@ -121,22 +124,23 @@ class DashboardScreen extends ConsumerWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
+                  color: brand.coinBackground,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: brand.coinBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.monetization_on,
-                      color: Colors.amber,
+                      color: brand.coinIcon,
                       size: 20,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       currentCoins.toString(),
-                      style: TextStyle(
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: brand.coinForeground,
                         fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade900,
                       ),
                     ),
                   ],
@@ -152,23 +156,21 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             _buildHeroBanner(context, ref, canClaimReward),
             const SizedBox(height: 32),
-            const Text(
-              'Schnellzugriff',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            Text('Schnellzugriff', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
             _buildQuickActionsGrid(),
             const SizedBox(height: 32),
             totalAvailableCards.when(
               loading: () =>
-                  _buildProgressSection(uniqueCollectedCards, 0, null),
+                  _buildProgressSection(context, uniqueCollectedCards, 0, null),
               error: (_, _) =>
-                  _buildProgressSection(uniqueCollectedCards, 0, null),
+                  _buildProgressSection(context, uniqueCollectedCards, 0, null),
               data: (maxCardsInSet) {
                 final progressValue = maxCardsInSet == 0
                     ? 0.0
                     : (uniqueCollectedCards / maxCardsInSet).clamp(0.0, 1.0);
                 return _buildProgressSection(
+                  context,
                   uniqueCollectedCards,
                   maxCardsInSet,
                   progressValue,
@@ -182,22 +184,21 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildHeroBanner(BuildContext context, WidgetRef ref, bool canClaim) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade700, Colors.purple.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: brand.heroGradient,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Tägliches Gratis-Pack!',
-            style: TextStyle(
+            style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -208,15 +209,17 @@ class DashboardScreen extends ConsumerWidget {
             canClaim
                 ? 'Hol dir jetzt deine neuen Spieler.'
                 : 'Du hast dein Pack heute schon abgeholt.',
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: canClaim ? () => _claimFreePack(context, ref) : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.blue.shade800,
-              disabledBackgroundColor: Colors.white30,
+              backgroundColor: brand.surfaceBackground,
+              foregroundColor: theme.colorScheme.primary,
+              disabledBackgroundColor: brand.surfaceBackground.withValues(
+                alpha: 0.28,
+              ),
               disabledForegroundColor: Colors.white70,
             ),
             child: Text(canClaim ? 'Jetzt öffnen' : 'Morgen wieder verfügbar'),
@@ -267,7 +270,13 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressSection(int collected, int total, double? progress) {
+  Widget _buildProgressSection(
+    BuildContext context,
+    int collected,
+    int total,
+    double? progress,
+  ) {
+    final theme = Theme.of(context);
     final percentage = progress == null
         ? '...'
         : (progress * 100).toStringAsFixed(1);
@@ -275,22 +284,19 @@ class DashboardScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Dein Fortschritt',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        Text('Dein Fortschritt', style: theme.textTheme.titleLarge),
         const SizedBox(height: 12),
         LinearProgressIndicator(
           value: progress,
           minHeight: 10,
-          backgroundColor: Colors.grey.shade300,
-          color: Colors.blue,
+          backgroundColor: theme.colorScheme.outlineVariant,
+          color: theme.colorScheme.primary,
           borderRadius: BorderRadius.circular(10),
         ),
         const SizedBox(height: 8),
         Text(
           '$collected von $total Karten gesammelt ($percentage%)',
-          style: const TextStyle(color: Colors.grey),
+          style: theme.textTheme.bodyMedium,
         ),
       ],
     );

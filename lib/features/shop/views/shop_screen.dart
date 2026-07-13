@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../cards/models/card_model.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/pack_model.dart';
 import 'pack_reveal_screen.dart';
 
@@ -117,23 +118,26 @@ class ShopScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildCoinsChip(int currentCoins) {
+  Widget _buildCoinsChip(BuildContext context, int currentCoins) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3D6),
+        color: brand.coinBackground,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFFFD88B), width: 1.2),
+        border: Border.all(color: brand.coinBorder, width: 1.2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.monetization_on, color: Color(0xFFB36A00), size: 20),
+          Icon(Icons.monetization_on, color: brand.coinIcon, size: 20),
           const SizedBox(width: 6),
           Text(
             '$currentCoins Coins',
-            style: const TextStyle(
-              color: Color(0xFF6A3E00),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: brand.coinForeground,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
             ),
@@ -149,6 +153,8 @@ class ShopScreen extends ConsumerWidget {
     PackModel pack,
     int currentCoins,
   ) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final canAfford = currentCoins >= pack.price;
 
     return Container(
@@ -238,10 +244,10 @@ class ShopScreen extends ConsumerWidget {
                               const SizedBox(width: 6),
                               Text(
                                 _typeLabel(pack.type),
-                                style: const TextStyle(
+                                style: theme.textTheme.labelLarge?.copyWith(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w600,
                                   fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -259,7 +265,7 @@ class ShopScreen extends ConsumerWidget {
                           ),
                           child: Text(
                             '${pack.price}',
-                            style: const TextStyle(
+                            style: theme.textTheme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -272,7 +278,7 @@ class ShopScreen extends ConsumerWidget {
                     const Spacer(),
                     Text(
                       pack.name,
-                      style: const TextStyle(
+                      style: theme.textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontSize: 30,
                         height: 1.05,
@@ -283,9 +289,8 @@ class ShopScreen extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Text(
                       'Kategorie: ${pack.filterValue}',
-                      style: const TextStyle(
-                        color: Color(0xF2FFFFFF),
-                        fontSize: 14,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -296,8 +301,8 @@ class ShopScreen extends ConsumerWidget {
                           child: FilledButton.icon(
                             onPressed: () => buyAndOpenPack(context, ref, pack),
                             style: FilledButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF0D1B2A),
+                              backgroundColor: brand.surfaceBackground,
+                              foregroundColor: theme.colorScheme.primary,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -328,18 +333,14 @@ class ShopScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final currentCoins = ref.watch(coinProvider);
     final packsFuture = ref.watch(availablePacksProvider);
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFDF3E5), Color(0xFFEAF3FF)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: brand.pageGradient),
         child: SafeArea(
           child: packsFuture.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -376,9 +377,11 @@ class ShopScreen extends ConsumerWidget {
                       return GridTile(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.72),
+                            color: brand.surfaceBackground.withValues(
+                              alpha: 0.78,
+                            ),
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFDCE7FF)),
+                            border: Border.all(color: brand.surfaceBorder),
                           ),
                           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                           child: Column(
@@ -403,15 +406,12 @@ class ShopScreen extends ConsumerWidget {
                                         SizedBox(height: 4),
                                         Text(
                                           'Ziehe neue Spielerkarten und erweitere deine Sammlung.',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFF4A5877),
-                                          ),
+                                          style: TextStyle(fontSize: 14),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  _buildCoinsChip(currentCoins),
+                                  _buildCoinsChip(context, currentCoins),
                                 ],
                               ),
                               const SizedBox(height: 14),
@@ -422,14 +422,14 @@ class ShopScreen extends ConsumerWidget {
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF5FF),
+                                  color: theme.colorScheme.primaryContainer
+                                      .withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   '${packs.length} Packs verfügbar',
-                                  style: const TextStyle(
-                                    color: Color(0xFF2E3D60),
-                                    fontWeight: FontWeight.w600,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: theme.colorScheme.onPrimaryContainer,
                                   ),
                                 ),
                               ),
