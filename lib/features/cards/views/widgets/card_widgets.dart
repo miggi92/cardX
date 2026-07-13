@@ -70,6 +70,16 @@ class CardWidget extends StatelessWidget {
     );
   }
 
+  double _responsiveIconSize(
+    BoxConstraints constraints, {
+    required double factor,
+    required double min,
+    required double max,
+  }) {
+    final shortestSide = constraints.biggest.shortestSide;
+    return clampDouble(shortestSide * factor, min, max);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,10 +119,20 @@ class CardWidget extends StatelessWidget {
                     child: _buildRemoteImage(
                       url: card.teamLogoUrl,
                       fit: BoxFit.contain,
-                      fallback: Icon(
-                        Icons.shield,
-                        color: brand.cardTextSecondary,
-                        size: 20,
+                      fallback: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final iconSize = _responsiveIconSize(
+                            constraints,
+                            factor: 0.7,
+                            min: 10,
+                            max: 20,
+                          );
+                          return Icon(
+                            Icons.shield,
+                            color: brand.cardTextSecondary,
+                            size: iconSize,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -125,16 +145,27 @@ class CardWidget extends StatelessWidget {
                 ],
               ),
               Expanded(
-                child: Center(
-                  child: _buildRemoteImage(
-                    url: card.playerImageUrl,
-                    fit: BoxFit.contain,
-                    fallback: Icon(
-                      Icons.person,
-                      color: brand.cardTextSecondary,
-                      size: 250,
-                    ),
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final iconSize = _responsiveIconSize(
+                      constraints,
+                      factor: 0.55,
+                      min: 34,
+                      max: 96,
+                    );
+
+                    return Center(
+                      child: _buildRemoteImage(
+                        url: card.playerImageUrl,
+                        fit: BoxFit.contain,
+                        fallback: Icon(
+                          Icons.person,
+                          color: brand.cardTextSecondary,
+                          size: iconSize,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               Center(

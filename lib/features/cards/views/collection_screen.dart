@@ -65,6 +65,18 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   final TextEditingController searchController = TextEditingController();
   CardRarity? selectedRarity;
 
+  ({int crossAxisCount, double childAspectRatio}) _gridConfigForWidth(
+    double maxWidth,
+  ) {
+    if (maxWidth < 420) {
+      return (crossAxisCount: 2, childAspectRatio: 0.52);
+    }
+    if (maxWidth < 760) {
+      return (crossAxisCount: 3, childAspectRatio: 0.56);
+    }
+    return (crossAxisCount: 4, childAspectRatio: 0.6);
+  }
+
   @override
   void dispose() {
     searchController.dispose();
@@ -174,98 +186,124 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: theme.colorScheme.surface,
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         side: BorderSide(color: brand.surfaceBorder),
       ),
       builder: (context) {
         final sheetTheme = Theme.of(context);
+        final maxSheetHeight = MediaQuery.sizeOf(context).height * 0.85;
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    playerName,
-                    style: sheetTheme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...sortedIds.map((id) {
-                    final card = uniqueModels[id]!;
-                    final count = exactCounts[id]!;
-                    final sellValue = getSellValue(card.rarity);
+            return SafeArea(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        playerName,
+                        style: sheetTheme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...sortedIds.map((id) {
+                        final card = uniqueModels[id]!;
+                        final count = exactCounts[id]!;
+                        final sellValue = getSellValue(card.rarity);
 
-                    if (count == 0) return const SizedBox.shrink();
+                        if (count == 0) return const SizedBox.shrink();
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: getRarityColor(context, card.rarity),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: getRarityColor(
+                                          context,
+                                          card.rarity,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${card.rarity.name.toUpperCase()} (x$count)',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '${card.rarity.name.toUpperCase()} (x$count)',
-                              ),
+                              if (count > 1)
+                                Flexible(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final sold = await sellCard(
+                                        card,
+                                        sellValue,
+                                      );
+                                      if (!sold) {
+                                        return;
+                                      }
+                                      setSheetState(() {
+                                        exactCounts[id] = exactCounts[id]! - 1;
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: sheetTheme
+                                          .colorScheme
+                                          .primaryContainer,
+                                      foregroundColor: sheetTheme
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.sell, size: 16),
+                                    label: Text(
+                                      'Quick Sell (+$sellValue)',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Text(
+                                  'Letztes Exemplar',
+                                  style: sheetTheme.textTheme.bodyMedium,
+                                ),
                             ],
                           ),
-                          if (count > 1)
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                final sold = await sellCard(card, sellValue);
-                                if (!sold) {
-                                  return;
-                                }
-                                setSheetState(() {
-                                  exactCounts[id] = exactCounts[id]! - 1;
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    sheetTheme.colorScheme.primaryContainer,
-                                foregroundColor:
-                                    sheetTheme.colorScheme.onPrimaryContainer,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                              ),
-                              icon: const Icon(Icons.sell, size: 16),
-                              label: Text('Quick Sell (+$sellValue)'),
-                            )
-                          else
-                            Text(
-                              'Letztes Exemplar',
-                              style: sheetTheme.textTheme.bodyMedium,
-                            ),
-                        ],
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Schließen',
+                            style: sheetTheme.textTheme.labelLarge,
+                          ),
+                        ),
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Schließen',
-                        style: sheetTheme.textTheme.labelLarge,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -688,22 +726,38 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                   child: _buildRemoteImage(
                                     url: teamLogoUrl,
                                     fit: BoxFit.contain,
-                                    fallback: const Icon(
-                                      Icons.shield,
-                                      color: Colors.blueAccent,
-                                      size: 24,
+                                    fallback: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final iconSize = clampDouble(
+                                          constraints.biggest.shortestSide *
+                                              0.72,
+                                          12,
+                                          22,
+                                        );
+                                        return Icon(
+                                          Icons.shield,
+                                          color: Colors.blueAccent,
+                                          size: iconSize,
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  teamName,
-                                  style: theme.textTheme.titleLarge,
+                                Expanded(
+                                  child: Text(
+                                    teamName,
+                                    style: theme.textTheme.titleLarge,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                const Spacer(),
+                                const SizedBox(width: 8),
                                 Text(
                                   '$totalPlayerCount Spieler',
                                   style: theme.textTheme.bodyMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -737,64 +791,75 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     ),
                                   ),
 
-                                GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 16,
-                                        mainAxisSpacing: 16,
-                                        childAspectRatio: 0.58,
-                                      ),
-                                  itemCount: sortedPlayerNames.length,
-                                  itemBuilder: (context, playerIndex) {
-                                    final playerName =
-                                        sortedPlayerNames[playerIndex];
-                                    final cardsOfPlayer =
-                                        playersMap[playerName]!;
-
-                                    cardsOfPlayer.sort(
-                                      (a, b) => getRarityValue(
-                                        b.rarity,
-                                      ).compareTo(getRarityValue(a.rarity)),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final gridConfig = _gridConfigForWidth(
+                                      constraints.maxWidth,
                                     );
-                                    final bestCard = cardsOfPlayer.first;
 
-                                    final Map<CardRarity, int> rarityCounts =
-                                        {};
-                                    for (final c in cardsOfPlayer) {
-                                      rarityCounts[c.rarity] =
-                                          (rarityCounts[c.rarity] ?? 0) + 1;
-                                    }
-
-                                    final bool hasAllRarities =
-                                        rarityCounts.length ==
-                                        CardRarity.values.length;
-
-                                    return GestureDetector(
-                                      onTap: () => showPlayerDetailsSheet(
-                                        playerName,
-                                        cardsOfPlayer,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Expanded(
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              clipBehavior: Clip.none,
-                                              children: [
-                                                CardWidget(card: bestCard),
-                                              ],
-                                            ),
+                                    return GridView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount:
+                                                gridConfig.crossAxisCount,
+                                            crossAxisSpacing: 16,
+                                            mainAxisSpacing: 16,
+                                            childAspectRatio:
+                                                gridConfig.childAspectRatio,
                                           ),
-                                          const SizedBox(height: 8),
-                                          buildRarityTrack(
-                                            rarityCounts,
-                                            hasAllRarities: hasAllRarities,
+                                      itemCount: sortedPlayerNames.length,
+                                      itemBuilder: (context, playerIndex) {
+                                        final playerName =
+                                            sortedPlayerNames[playerIndex];
+                                        final cardsOfPlayer =
+                                            playersMap[playerName]!;
+
+                                        cardsOfPlayer.sort(
+                                          (a, b) => getRarityValue(
+                                            b.rarity,
+                                          ).compareTo(getRarityValue(a.rarity)),
+                                        );
+                                        final bestCard = cardsOfPlayer.first;
+
+                                        final Map<CardRarity, int>
+                                        rarityCounts = {};
+                                        for (final c in cardsOfPlayer) {
+                                          rarityCounts[c.rarity] =
+                                              (rarityCounts[c.rarity] ?? 0) + 1;
+                                        }
+
+                                        final bool hasAllRarities =
+                                            rarityCounts.length ==
+                                            CardRarity.values.length;
+
+                                        return GestureDetector(
+                                          onTap: () => showPlayerDetailsSheet(
+                                            playerName,
+                                            cardsOfPlayer,
                                           ),
-                                        ],
-                                      ),
+                                          child: Column(
+                                            children: [
+                                              Expanded(
+                                                child: Stack(
+                                                  fit: StackFit.expand,
+                                                  clipBehavior: Clip.none,
+                                                  children: [
+                                                    CardWidget(card: bestCard),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              buildRarityTrack(
+                                                rarityCounts,
+                                                hasAllRarities: hasAllRarities,
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
