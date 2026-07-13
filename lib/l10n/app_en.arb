@@ -1,0 +1,177 @@
+{
+  "@@locale": "en",
+  "dashboardTitle": "CardX Dashboard",
+  "dashboardFreePackAlreadyClaimed": "You already claimed today's free pack.",
+  "dashboardFreePackNoPlayersFound": "No players found for the free pack!",
+  "dashboardFreePackSaveFailed": "Could not save the free pack.",
+  "dashboardCardsSaveFailed": "Could not save cards.",
+  "dashboardFreePackLoadError": "Error while loading free pack: {error}",
+  "@dashboardFreePackLoadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dashboardDailyFreePackTitle": "Daily Free Pack",
+  "dashboardDailyFreePackAvailableBody": "Get new players now and expand your collection.",
+  "dashboardDailyFreePackUnavailableBody": "Your free pack is already opened. Come back tomorrow for the next one.",
+  "dashboardOpenPackCta": "Open pack",
+  "dashboardAvailableTomorrowCta": "Available again tomorrow",
+  "dashboardCollectionLabel": "Collection",
+  "dashboardCoinsLabel": "Coins",
+  "dashboardCollectedCardsCount": "{count} cards",
+  "@dashboardCollectedCardsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardProgressTitle": "Your Progress",
+  "dashboardCollectedOfTotal": "{collected} of {total} cards collected",
+  "@dashboardCollectedOfTotal": {
+    "placeholders": {
+      "collected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardProgressBySportTitle": "Progress by Sport",
+  "dashboardSportsLoading": "Loading sports...",
+  "dashboardNoSportsFound": "No sports found.",
+  "shopTitle": "Shop",
+  "shopSubtitle": "Pull new player cards and expand your collection.",
+  "shopNoPlayersForPackFound": "No players found for this pack!",
+  "shopPurchaseCanceledCoinsRefunded": "Purchase canceled, coins were refunded.",
+  "shopPurchaseFailedNotEnoughCoins": "Purchase failed or not enough coins!",
+  "shopPackTypeClub": "Club Pack",
+  "shopPackTypeSport": "Sport Pack",
+  "shopPackTypeLeague": "League Pack",
+  "shopPackTypeOrganization": "Organization Pack",
+  "shopCoinsCount": "{coins} Coins",
+  "@shopCoinsCount": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "shopCategoryLabel": "Category: {category}",
+  "@shopCategoryLabel": {
+    "placeholders": {
+      "category": {}
+    }
+  },
+  "shopOpenForCoins": "Open for {coins} coins",
+  "@shopOpenForCoins": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "shopCoinsRequired": "{coins} coins required",
+  "@shopCoinsRequired": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "shopLoadError": "Error while loading the shop:\n{error}",
+  "@shopLoadError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "shopPacksAvailable": "{count} packs available",
+  "@shopPacksAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionTitle": "Collection ({count} total)",
+  "@collectionTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionSearchHint": "Search players...",
+  "collectionSellCardFailed": "Card could not be sold.",
+  "collectionCreditCoinsFailed": "Coins could not be credited.",
+  "collectionSoldCardForCoins": "{playerName} ({rarity}) sold for {coins} coins!",
+  "@collectionSoldCardForCoins": {
+    "placeholders": {
+      "playerName": {},
+      "rarity": {},
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionQuickSellWithValue": "Quick Sell (+{value})",
+  "@collectionQuickSellWithValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionLastCopy": "Last copy",
+  "collectionClose": "Close",
+  "collectionSellAllDuplicatesTitle": "Sell all duplicates?",
+  "collectionSellAllDuplicatesBody": "You are about to sell {duplicateCount} duplicate cards. You will receive {totalValue} coins.",
+  "@collectionSellAllDuplicatesBody": {
+    "placeholders": {
+      "duplicateCount": {
+        "type": "int"
+      },
+      "totalValue": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionCancel": "Cancel",
+  "collectionSellDuplicatesFailed": "Duplicates could not be sold.",
+  "collectionSoldDuplicatesForCoins": "{duplicateCount} cards sold for {totalValue} coins!",
+  "@collectionSoldDuplicatesForCoins": {
+    "placeholders": {
+      "duplicateCount": {
+        "type": "int"
+      },
+      "totalValue": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionSell": "Sell",
+  "collectionAllFilter": "ALL",
+  "collectionSellAllDuplicatesCta": "Sell all duplicates (+ {coins} coins)",
+  "@collectionSellAllDuplicatesCta": {
+    "placeholders": {
+      "coins": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionEmpty": "Your collection is still empty.",
+  "collectionNoPlayersFound": "No players found.",
+  "collectionPlayersCount": "{count} players",
+  "@collectionPlayersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionGeneral": "General",
+  "sportSoccer": "Soccer",
+  "sportHandball": "Handball",
+  "sportUnknown": "Unknown"
+}

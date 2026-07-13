@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/sport_utils.dart';
 import '../../../core/repositories/supabase_shop_repository.dart';
 import '../../features/cards/models/card_rarity.dart';
 import '../../features/shop/models/pack_model.dart';
@@ -25,9 +26,8 @@ final totalAvailableCardsBySportProvider = FutureProvider<Map<String, int>>((
   final countsBySport = <String, int>{};
 
   for (final player in players) {
-    final rawSport = (player['sport'] as String?) ?? '';
-    final sport = rawSport.trim().isEmpty ? 'Unbekannt' : rawSport.trim();
-    countsBySport[sport] = (countsBySport[sport] ?? 0) + 1;
+    final sportId = normalizeSportId((player['sport'] as String?) ?? '');
+    countsBySport[sportId] = (countsBySport[sportId] ?? 0) + 1;
   }
 
   return countsBySport.map(

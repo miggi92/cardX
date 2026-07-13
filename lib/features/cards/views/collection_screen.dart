@@ -1,4 +1,6 @@
 import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
+import 'package:cardx/core/constants/sport_utils.dart';
+import 'package:cardx/l10n/generated/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -125,6 +127,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   Future<bool> sellCard(CardModel card, int sellValue) async {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final removed = await ref
         .read(collectionProvider.notifier)
@@ -133,7 +136,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Karte konnte nicht verkauft werden.'),
+          content: Text(l10n.collectionSellCardFailed),
           backgroundColor: theme.colorScheme.error,
         ),
       );
@@ -145,7 +148,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Coins konnten nicht gutgeschrieben werden.'),
+          content: Text(l10n.collectionCreditCoinsFailed),
           backgroundColor: theme.colorScheme.error,
         ),
       );
@@ -156,7 +159,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${card.playerName} (${card.rarity.name}) verkauft für $sellValue Coins!',
+          l10n.collectionSoldCardForCoins(
+            card.playerName,
+            card.rarity.name.toUpperCase(),
+            sellValue,
+          ),
         ),
         backgroundColor: theme.colorScheme.primary,
         duration: const Duration(seconds: 2),
@@ -166,6 +173,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   void showPlayerDetailsSheet(String playerName, List<CardModel> cards) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final Map<String, int> exactCounts = {};
@@ -276,7 +284,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     ),
                                     icon: const Icon(Icons.sell, size: 16),
                                     label: Text(
-                                      'Quick Sell (+$sellValue)',
+                                      l10n.collectionQuickSellWithValue(
+                                        sellValue,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -284,7 +294,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 )
                               else
                                 Text(
-                                  'Letztes Exemplar',
+                                  l10n.collectionLastCopy,
                                   style: sheetTheme.textTheme.bodyMedium,
                                 ),
                             ],
@@ -296,7 +306,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'Schließen',
+                            l10n.collectionClose,
                             style: sheetTheme.textTheme.labelLarge,
                           ),
                         ),
@@ -313,20 +323,24 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   void showBulkSellDialog(int duplicateCount, int totalValue) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) {
         final dialogTheme = Theme.of(context);
         return AlertDialog(
-          title: const Text('Alle Duplikate verkaufen?'),
+          title: Text(l10n.collectionSellAllDuplicatesTitle),
           content: Text(
-            'Du stehst kurz davor, $duplicateCount doppelte Karten zu verkaufen. Dafür erhältst du $totalValue Coins.',
+            l10n.collectionSellAllDuplicatesBody(duplicateCount, totalValue),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Abbrechen', style: dialogTheme.textTheme.labelLarge),
+              child: Text(
+                l10n.collectionCancel,
+                style: dialogTheme.textTheme.labelLarge,
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -338,9 +352,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text(
-                        'Duplikate konnten nicht verkauft werden.',
-                      ),
+                      content: Text(l10n.collectionSellDuplicatesFailed),
                       backgroundColor: theme.colorScheme.error,
                     ),
                   );
@@ -355,9 +367,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text(
-                        'Coins konnten nicht gutgeschrieben werden.',
-                      ),
+                      content: Text(l10n.collectionCreditCoinsFailed),
                       backgroundColor: theme.colorScheme.error,
                     ),
                   );
@@ -370,7 +380,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      '$duplicateCount Karten für $totalValue Coins verkauft!',
+                      l10n.collectionSoldDuplicatesForCoins(
+                        duplicateCount,
+                        totalValue,
+                      ),
                     ),
                     backgroundColor: theme.colorScheme.primary,
                   ),
@@ -380,7 +393,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 backgroundColor: theme.colorScheme.primaryContainer,
                 foregroundColor: theme.colorScheme.onPrimaryContainer,
               ),
-              child: const Text('Verkaufen'),
+              child: Text(l10n.collectionSell),
             ),
           ],
         );
@@ -474,6 +487,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   }
 
   Widget buildRarityLegend() {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
 
@@ -538,7 +552,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         alignment: WrapAlignment.center,
         children: [
           buildLegendChip(
-            label: 'ALLE',
+            label: l10n.collectionAllFilter,
             icon: Icons.grid_view,
             color: theme.colorScheme.primary,
             selected: selectedRarity == null,
@@ -565,6 +579,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final myCards = ref.watch(collectionProvider);
@@ -610,7 +625,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     final sortedTeamNames = groupedByTeamSportPlayer.keys.toList()..sort();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Sammlung (${myCards.length} gesamt)')),
+      appBar: AppBar(title: Text(l10n.collectionTitle(myCards.length))),
       body: Column(
         children: [
           Padding(
@@ -619,7 +634,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               controller: searchController,
               onChanged: (value) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Spieler suchen...',
+                hintText: l10n.collectionSearchHint,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -650,7 +665,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 ),
                 icon: const Icon(Icons.monetization_on),
                 label: Text(
-                  'Alle doppelten verkaufen (+ $totalDuplicateValue Coins)',
+                  l10n.collectionSellAllDuplicatesCta(totalDuplicateValue),
                 ),
               ),
             ),
@@ -668,7 +683,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Deine Sammlung ist noch leer.',
+                          l10n.collectionEmpty,
                           style: theme.textTheme.titleMedium,
                         ),
                       ],
@@ -677,7 +692,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 : filteredCards.isEmpty
                 ? Center(
                     child: Text(
-                      'Keine Spieler gefunden.',
+                      l10n.collectionNoPlayersFound,
                       style: theme.textTheme.bodyLarge,
                     ),
                   )
@@ -754,7 +769,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '$totalPlayerCount Spieler',
+                                  l10n.collectionPlayersCount(totalPlayerCount),
                                   style: theme.textTheme.bodyMedium,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -778,9 +793,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                       top: 4.0,
                                     ),
                                     child: Text(
-                                      sport.isNotEmpty
-                                          ? sport.toUpperCase()
-                                          : 'ALLGEMEIN',
+                                      _localizedSportHeading(l10n, sport),
                                       style: theme.textTheme.labelLarge
                                           ?.copyWith(
                                             color: theme
@@ -884,5 +897,21 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         ],
       ),
     );
+  }
+
+  String _localizedSportHeading(AppLocalizations l10n, String rawSport) {
+    final sportId = normalizeSportId(rawSport);
+    final label = switch (sportId) {
+      'soccer' => l10n.sportSoccer,
+      'handball' => l10n.sportHandball,
+      'unknown' => l10n.collectionGeneral,
+      _ =>
+        sportId
+            .split('_')
+            .where((part) => part.isNotEmpty)
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join(' '),
+    };
+    return label.toUpperCase();
   }
 }

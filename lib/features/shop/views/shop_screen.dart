@@ -1,4 +1,6 @@
 import 'package:cardx/core/providers/shop_provider.dart';
+import 'package:cardx/core/constants/sport_utils.dart';
+import 'package:cardx/l10n/generated/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,6 +85,7 @@ class ShopScreen extends ConsumerWidget {
     WidgetRef ref,
     PackModel pack,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final success = await ref
         .read(coinProvider.notifier)
         .spendCoins(pack.price);
@@ -111,11 +114,9 @@ class ShopScreen extends ConsumerWidget {
       ).pop(); // Ladeindikator schließen
 
       if (pulledCards.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Keine Spieler für dieses Pack gefunden!'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.shopNoPlayersForPackFound)));
         await ref.read(coinProvider.notifier).addCoins(pack.price);
         return;
       }
@@ -132,9 +133,7 @@ class ShopScreen extends ConsumerWidget {
           return;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Kauf abgebrochen, Coins wurden erstattet.'),
-          ),
+          SnackBar(content: Text(l10n.shopPurchaseCanceledCoinsRefunded)),
         );
         return;
       }
@@ -146,24 +145,38 @@ class ShopScreen extends ConsumerWidget {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kauf fehlgeschlagen oder nicht genug Coins!'),
-        ),
+        SnackBar(content: Text(l10n.shopPurchaseFailedNotEnoughCoins)),
       );
     }
   }
 
-  String _typeLabel(PackType type) {
+  String _typeLabel(AppLocalizations l10n, PackType type) {
     switch (type) {
       case PackType.club:
-        return 'Club Pack';
+        return l10n.shopPackTypeClub;
       case PackType.sport:
-        return 'Sport Pack';
+        return l10n.shopPackTypeSport;
       case PackType.league:
-        return 'League Pack';
+        return l10n.shopPackTypeLeague;
       case PackType.organization:
-        return 'Organization Pack';
+        return l10n.shopPackTypeOrganization;
     }
+  }
+
+  String _localizedSportLabel(BuildContext context, String rawSport) {
+    final l10n = AppLocalizations.of(context)!;
+    final sportId = normalizeSportId(rawSport);
+    return switch (sportId) {
+      'soccer' => l10n.sportSoccer,
+      'handball' => l10n.sportHandball,
+      'unknown' => l10n.sportUnknown,
+      _ =>
+        sportId
+            .split('_')
+            .where((part) => part.isNotEmpty)
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join(' '),
+    };
   }
 
   IconData _typeIcon(PackType type) {
@@ -293,6 +306,7 @@ class ShopScreen extends ConsumerWidget {
   }
 
   Widget _buildCoinsChip(BuildContext context, int currentCoins) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
 
@@ -309,7 +323,7 @@ class ShopScreen extends ConsumerWidget {
           Icon(Icons.monetization_on, color: brand.coinIcon, size: 20),
           const SizedBox(width: 6),
           Text(
-            '$currentCoins Coins',
+            l10n.shopCoinsCount(currentCoins),
             style: theme.textTheme.labelLarge?.copyWith(
               color: brand.coinForeground,
               fontWeight: FontWeight.w700,
@@ -327,6 +341,7 @@ class ShopScreen extends ConsumerWidget {
     PackModel pack,
     int currentCoins,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final canAfford = currentCoins >= pack.price;
@@ -413,7 +428,7 @@ class ShopScreen extends ConsumerWidget {
                               _buildPackLogo(pack),
                               const SizedBox(width: 6),
                               Text(
-                                _typeLabel(pack.type),
+                                _typeLabel(l10n, pack.type),
                                 style: theme.textTheme.labelLarge?.copyWith(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -458,7 +473,11 @@ class ShopScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Kategorie: ${pack.filterValue}',
+                      l10n.shopCategoryLabel(
+                        pack.type == PackType.sport
+                            ? _localizedSportLabel(context, pack.filterValue)
+                            : pack.filterValue,
+                      ),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withValues(alpha: 0.95),
                         fontWeight: FontWeight.w500,
@@ -481,8 +500,8 @@ class ShopScreen extends ConsumerWidget {
                             icon: const Icon(Icons.shopping_bag_outlined),
                             label: Text(
                               canAfford
-                                  ? 'Für ${pack.price} Coins öffnen'
-                                  : '${pack.price} Coins benötigt',
+                                  ? l10n.shopOpenForCoins(pack.price)
+                                  : l10n.shopCoinsRequired(pack.price),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -504,6 +523,7 @@ class ShopScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final currentCoins = ref.watch(coinProvider);
@@ -519,7 +539,7 @@ class ShopScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Fehler beim Laden des Shops:\n$err',
+                  l10n.shopLoadError(err.toString()),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -560,24 +580,24 @@ class ShopScreen extends ConsumerWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Expanded(
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Shop',
-                                          style: TextStyle(
+                                          l10n.shopTitle,
+                                          style: const TextStyle(
                                             fontSize: 34,
                                             fontWeight: FontWeight.w900,
                                             color: Color(0xFF162033),
                                             height: 0.95,
                                           ),
                                         ),
-                                        SizedBox(height: 4),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          'Ziehe neue Spielerkarten und erweitere deine Sammlung.',
-                                          style: TextStyle(fontSize: 14),
+                                          l10n.shopSubtitle,
+                                          style: const TextStyle(fontSize: 14),
                                         ),
                                       ],
                                     ),
@@ -598,7 +618,7 @@ class ShopScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '${packs.length} Packs verfügbar',
+                                  l10n.shopPacksAvailable(packs.length),
                                   style: theme.textTheme.labelLarge?.copyWith(
                                     color: theme.colorScheme.onPrimaryContainer,
                                   ),

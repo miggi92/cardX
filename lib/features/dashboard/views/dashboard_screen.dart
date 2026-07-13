@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cardx/l10n/generated/app_localizations.dart';
+import '../../../core/constants/sport_utils.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/daily_reward_provider.dart';
@@ -11,12 +13,13 @@ class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   Future<void> _claimFreePack(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final canClaim = ref
         .read(dailyRewardProvider)
         .maybeWhen(data: DailyRewardNotifier.canClaimFor, orElse: () => false);
     if (!canClaim) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gratis-Pack heute bereits abgeholt.')),
+        SnackBar(content: Text(l10n.dashboardFreePackAlreadyClaimed)),
       );
       return;
     }
@@ -41,9 +44,7 @@ class DashboardScreen extends ConsumerWidget {
 
       if (pulledCards.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Keine Spieler für das Gratis-Pack gefunden!'),
-          ),
+          SnackBar(content: Text(l10n.dashboardFreePackNoPlayersFound)),
         );
         return;
       }
@@ -56,9 +57,7 @@ class DashboardScreen extends ConsumerWidget {
       }
       if (!rewardClaimed) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gratis-Pack konnte nicht gespeichert werden.'),
-          ),
+          SnackBar(content: Text(l10n.dashboardFreePackSaveFailed)),
         );
         return;
       }
@@ -70,11 +69,9 @@ class DashboardScreen extends ConsumerWidget {
         return;
       }
       if (!cardsSaved) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Karten konnten nicht gespeichert werden.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.dashboardCardsSaveFailed)));
         return;
       }
 
@@ -90,13 +87,16 @@ class DashboardScreen extends ConsumerWidget {
 
       Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Laden des Gratis-Packs: $error')),
+        SnackBar(
+          content: Text(l10n.dashboardFreePackLoadError(error.toString())),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final currentCoins = ref.watch(coinProvider);
@@ -108,8 +108,8 @@ class DashboardScreen extends ConsumerWidget {
     );
     final collectedIdsBySport = <String, Set<String>>{};
     for (final card in myCards) {
-      final sport = _normalizeSportName(card.sport);
-      collectedIdsBySport.putIfAbsent(sport, () => <String>{}).add(card.id);
+      final sportId = normalizeSportId(card.sport);
+      collectedIdsBySport.putIfAbsent(sportId, () => <String>{}).add(card.id);
     }
     final collectedCardsBySport = {
       for (final entry in collectedIdsBySport.entries)
@@ -125,7 +125,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CardX Dashboard'),
+        title: Text(l10n.dashboardTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -176,10 +176,20 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             totalAvailableCards.when(
-              loading: () =>
-                  _buildProgressSection(context, uniqueCollectedCards, 0, null),
-              error: (_, _) =>
-                  _buildProgressSection(context, uniqueCollectedCards, 0, null),
+              loading: () => _buildProgressSection(
+                context,
+                uniqueCollectedCards,
+                0,
+                null,
+                l10n,
+              ),
+              error: (_, _) => _buildProgressSection(
+                context,
+                uniqueCollectedCards,
+                0,
+                null,
+                l10n,
+              ),
               data: (maxCardsInSet) {
                 final progressValue = maxCardsInSet == 0
                     ? 0.0
@@ -189,6 +199,7 @@ class DashboardScreen extends ConsumerWidget {
                   uniqueCollectedCards,
                   maxCardsInSet,
                   progressValue,
+                  l10n,
                 );
               },
             ),
@@ -198,17 +209,20 @@ class DashboardScreen extends ConsumerWidget {
                 context,
                 collectedBySport: collectedCardsBySport,
                 totalsBySport: const {},
+                l10n: l10n,
                 isLoading: true,
               ),
               error: (_, _) => _buildSportProgressSection(
                 context,
                 collectedBySport: collectedCardsBySport,
                 totalsBySport: const {},
+                l10n: l10n,
               ),
               data: (totalsBySport) => _buildSportProgressSection(
                 context,
                 collectedBySport: collectedCardsBySport,
                 totalsBySport: totalsBySport,
+                l10n: l10n,
               ),
             ),
           ],
@@ -217,12 +231,8 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  String _normalizeSportName(String rawSport) {
-    final normalized = rawSport.trim();
-    return normalized.isEmpty ? 'Unbekannt' : normalized;
-  }
-
   Widget _buildHeroBanner(BuildContext context, WidgetRef ref, bool canClaim) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
 
@@ -256,7 +266,7 @@ class DashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tägliches Gratis-Pack',
+                  l10n.dashboardDailyFreePackTitle,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     color: Colors.white,
                     fontSize: 26,
@@ -266,8 +276,8 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   canClaim
-                      ? 'Hol dir jetzt neue Spieler und erweitere deine Sammlung.'
-                      : 'Dein Gratis-Pack ist bereits geöffnet. Komm morgen für das nächste zurück.',
+                      ? l10n.dashboardDailyFreePackAvailableBody
+                      : l10n.dashboardDailyFreePackUnavailableBody,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: Colors.white.withValues(alpha: 0.88),
                   ),
@@ -286,7 +296,9 @@ class DashboardScreen extends ConsumerWidget {
                     disabledForegroundColor: Colors.white70,
                   ),
                   child: Text(
-                    canClaim ? 'Pack öffnen' : 'Morgen wieder verfügbar',
+                    canClaim
+                        ? l10n.dashboardOpenPackCta
+                        : l10n.dashboardAvailableTomorrowCta,
                   ),
                 ),
               ],
@@ -311,6 +323,7 @@ class DashboardScreen extends ConsumerWidget {
     required int collectedCards,
     required AsyncValue<int> totalCards,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
 
@@ -321,7 +334,7 @@ class DashboardScreen extends ConsumerWidget {
           loading: () => _buildOverviewCard(
             context,
             icon: Icons.layers_rounded,
-            label: 'Sammlung',
+            label: l10n.dashboardCollectionLabel,
             value: '$collectedCards / ...',
             accent: theme.colorScheme.primary,
             background: theme.colorScheme.primaryContainer.withValues(
@@ -331,8 +344,8 @@ class DashboardScreen extends ConsumerWidget {
           error: (_, _) => _buildOverviewCard(
             context,
             icon: Icons.layers_rounded,
-            label: 'Sammlung',
-            value: '$collectedCards Karten',
+            label: l10n.dashboardCollectionLabel,
+            value: l10n.dashboardCollectedCardsCount(collectedCards),
             accent: theme.colorScheme.primary,
             background: theme.colorScheme.primaryContainer.withValues(
               alpha: 0.28,
@@ -341,7 +354,7 @@ class DashboardScreen extends ConsumerWidget {
           data: (total) => _buildOverviewCard(
             context,
             icon: Icons.layers_rounded,
-            label: 'Sammlung',
+            label: l10n.dashboardCollectionLabel,
             value: '$collectedCards / $total',
             accent: theme.colorScheme.primary,
             background: theme.colorScheme.primaryContainer.withValues(
@@ -354,7 +367,7 @@ class DashboardScreen extends ConsumerWidget {
           _buildOverviewCard(
             context,
             icon: Icons.monetization_on_rounded,
-            label: 'Coins',
+            label: l10n.dashboardCoinsLabel,
             value: currentCoins.toString(),
             accent: brand.coinIcon,
             background: brand.coinBackground,
@@ -449,6 +462,7 @@ class DashboardScreen extends ConsumerWidget {
     int collected,
     int total,
     double? progress,
+    AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
@@ -477,7 +491,7 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Dein Fortschritt',
+                  l10n.dashboardProgressTitle,
                   style: theme.textTheme.titleLarge,
                 ),
               ),
@@ -499,7 +513,7 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '$collected von $total Karten gesammelt',
+            l10n.dashboardCollectedOfTotal(collected, total),
             style: theme.textTheme.bodyMedium,
           ),
         ],
@@ -511,6 +525,7 @@ class DashboardScreen extends ConsumerWidget {
     BuildContext context, {
     required Map<String, int> collectedBySport,
     required Map<String, int> totalsBySport,
+    required AppLocalizations l10n,
     bool isLoading = false,
   }) {
     final theme = Theme.of(context);
@@ -537,18 +552,21 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Fortschritt pro Sportart', style: theme.textTheme.titleLarge),
+          Text(
+            l10n.dashboardProgressBySportTitle,
+            style: theme.textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           if (isLoading)
             Text(
-              'Sportarten werden geladen ...',
+              l10n.dashboardSportsLoading,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: brand.subtleText,
               ),
             )
           else if (allSports.isEmpty)
             Text(
-              'Keine Sportarten gefunden.',
+              l10n.dashboardNoSportsFound,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: brand.subtleText,
               ),
@@ -577,7 +595,7 @@ class DashboardScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            sport,
+                            _sportLabelForId(l10n, sport),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
@@ -606,7 +624,7 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '$collected von $total Karten gesammelt',
+                      l10n.dashboardCollectedOfTotal(collected, total),
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
@@ -616,5 +634,19 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _sportLabelForId(AppLocalizations l10n, String sportId) {
+    return switch (sportId) {
+      'soccer' => l10n.sportSoccer,
+      'handball' => l10n.sportHandball,
+      'unknown' => l10n.sportUnknown,
+      _ =>
+        sportId
+            .split('_')
+            .where((part) => part.isNotEmpty)
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join(' '),
+    };
   }
 }
