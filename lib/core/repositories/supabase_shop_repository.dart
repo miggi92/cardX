@@ -42,4 +42,8 @@ class SupabaseShopRepository {
         .select('*, clubs(*)')
         .eq(column, filterValue);
   }
+
+  Future<List<Map<String, dynamic>>> getAllPlayers() async {
+    return await _supabase.from('player_pool').select('*, clubs(*)');
+  }
 }
