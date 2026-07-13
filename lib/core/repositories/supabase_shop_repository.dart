@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 class SupabaseShopRepository {
   final _supabase = Supabase.instance.client;
+  final Map<String, String> _resolvedImageUrlCache = {};
 
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase.from('packs').select();
@@ -34,9 +35,10 @@ class SupabaseShopRepository {
         final clubName = club['name'] as String?;
         final clubId = club['id'];
         if (clubName != null && clubId != null) {
-          clubLogoByName[clubName] = _supabase.storage
-              .from('club-logos')
-              .getPublicUrl('$clubId.png');
+          clubLogoByName[clubName] = await _resolvePublicImageUrl(
+            bucketName: 'club-logos',
+            objectId: '$clubId',
+          );
         }
       }
     }
@@ -91,26 +93,49 @@ class SupabaseShopRepository {
     int count = 10,
   }) async {
     final filteredPool = await getFilteredPlayerPool(type, filterValue);
-    return _generateRandomCardsFromPool(filteredPool, count: count);
+    return await _generateRandomCardsFromPool(filteredPool, count: count);
   }
 
   Future<List<CardModel>> generateRandomCardsFromAllPlayers({
     int count = 10,
   }) async {
     final allPlayers = await getAllPlayers();
-    return _generateRandomCardsFromPool(allPlayers, count: count);
+    return await _generateRandomCardsFromPool(allPlayers, count: count);
   }
 
-  List<CardModel> _generateRandomCardsFromPool(
+  Future<List<CardModel>> _generateRandomCardsFromPool(
     List<Map<String, dynamic>> playerPool, {
     required int count,
-  }) {
+  }) async {
     final availablePlayers = playerPool
         .where((player) => player['clubs'] != null)
         .toList();
 
     if (availablePlayers.isEmpty) {
       return [];
+    }
+
+    final clubLogoById = <String, String>{};
+    final playerImageById = <String, String>{};
+
+    for (final player in availablePlayers) {
+      final club = player['clubs'] as Map<String, dynamic>;
+      final clubId = '${club['id']}';
+      final playerId = '${player['id']}';
+
+      if (!clubLogoById.containsKey(clubId)) {
+        clubLogoById[clubId] = await _resolvePublicImageUrl(
+          bucketName: 'club-logos',
+          objectId: clubId,
+        );
+      }
+
+      if (!playerImageById.containsKey(playerId)) {
+        playerImageById[playerId] = await _resolvePublicImageUrl(
+          bucketName: 'player-images',
+          objectId: playerId,
+        );
+      }
     }
 
     final random = Random();
@@ -127,12 +152,8 @@ class SupabaseShopRepository {
           playerName: player['name'] as String,
           position: player['position'] as String,
           teamName: club['name'] as String,
-          teamLogoUrl: _supabase.storage
-              .from('club-logos')
-              .getPublicUrl('${club['id']}.png'),
-          playerImageUrl: _supabase.storage
-              .from('player-images')
-              .getPublicUrl('${player['id']}.png'),
+          teamLogoUrl: clubLogoById['${club['id']}']!,
+          playerImageUrl: playerImageById['${player['id']}']!,
           rarity: rarity,
           stats: PlayerStats(
             goals: (player['goals'] as num).toInt(),
@@ -143,6 +164,37 @@ class SupabaseShopRepository {
     }
 
     return pulledCards;
+  }
+
+  Future<String> _resolvePublicImageUrl({
+    required String bucketName,
+    required String objectId,
+  }) async {
+    final cacheKey = '$bucketName/$objectId';
+    final cachedUrl = _resolvedImageUrlCache[cacheKey];
+    if (cachedUrl != null) {
+      return cachedUrl;
+    }
+
+    final storage = _supabase.storage.from(bucketName);
+    const extensions = ['png', 'jpg', 'jpeg', 'webp'];
+
+    for (final extension in extensions) {
+      final path = '$objectId.$extension';
+      try {
+        if (await storage.exists(path)) {
+          final url = storage.getPublicUrl(path);
+          _resolvedImageUrlCache[cacheKey] = url;
+          return url;
+        }
+      } catch (_) {
+        // Fall through to next extension and keep a png fallback below.
+      }
+    }
+
+    final fallbackUrl = storage.getPublicUrl('$objectId.png');
+    _resolvedImageUrlCache[cacheKey] = fallbackUrl;
+    return fallbackUrl;
   }
 
   CardRarity _rollRarity(Random random) {

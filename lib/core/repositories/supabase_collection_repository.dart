@@ -5,6 +5,7 @@ import '../../features/cards/models/player_stats.dart';
 
 class SupabaseCollectionRepository {
   final _supabase = Supabase.instance.client;
+  final Map<String, String> _resolvedImageUrlCache = {};
 
   Future<List<CardModel>> getCards() async {
     final userId = _supabase.auth.currentUser!.id;
@@ -14,30 +15,37 @@ class SupabaseCollectionRepository {
         .select('*, player_pool(*, clubs(*))')
         .eq('user_id', userId);
 
-    return response.map((json) {
+    final cards = <CardModel>[];
+    for (final json in response) {
       final player = json['player_pool'];
       final club = player['clubs'];
 
-      final logoUrl = _supabase.storage
-          .from('club-logos')
-          .getPublicUrl('${club['id']}.png');
-      final playerImageUrl = _supabase.storage
-          .from('player-logo')
-          .getPublicUrl('${player['id']}.png');
+      final logoUrl = await _resolvePublicImageUrl(
+        bucketName: 'club-logos',
+        objectId: '${club['id']}',
+      );
+      final playerImageUrl = await _resolvePublicImageUrl(
+        bucketName: 'player-logo',
+        objectId: '${player['id']}',
+      );
 
       final logicalCardId = '${player['id']}_${json['rarity']}';
 
-      return CardModel(
-        id: logicalCardId,
-        playerName: player['name'],
-        position: player['position'],
-        teamName: club['name'],
-        teamLogoUrl: logoUrl,
-        playerImageUrl: playerImageUrl,
-        rarity: CardRarity.values.byName(json['rarity']),
-        stats: PlayerStats(goals: player['goals'], games: player['games']),
+      cards.add(
+        CardModel(
+          id: logicalCardId,
+          playerName: player['name'],
+          position: player['position'],
+          teamName: club['name'],
+          teamLogoUrl: logoUrl,
+          playerImageUrl: playerImageUrl,
+          rarity: CardRarity.values.byName(json['rarity']),
+          stats: PlayerStats(goals: player['goals'], games: player['games']),
+        ),
       );
-    }).toList();
+    }
+
+    return cards;
   }
 
   Future<void> addCards(List<CardModel> cards) async {
@@ -82,5 +90,36 @@ class SupabaseCollectionRepository {
     if (uniqueCards.isNotEmpty) {
       await addCards(uniqueCards);
     }
+  }
+
+  Future<String> _resolvePublicImageUrl({
+    required String bucketName,
+    required String objectId,
+  }) async {
+    final cacheKey = '$bucketName/$objectId';
+    final cachedUrl = _resolvedImageUrlCache[cacheKey];
+    if (cachedUrl != null) {
+      return cachedUrl;
+    }
+
+    final storage = _supabase.storage.from(bucketName);
+    const extensions = ['png', 'jpg', 'jpeg', 'webp'];
+
+    for (final extension in extensions) {
+      final path = '$objectId.$extension';
+      try {
+        if (await storage.exists(path)) {
+          final url = storage.getPublicUrl(path);
+          _resolvedImageUrlCache[cacheKey] = url;
+          return url;
+        }
+      } catch (_) {
+        // Fall through to next extension and keep a png fallback below.
+      }
+    }
+
+    final fallbackUrl = storage.getPublicUrl('$objectId.png');
+    _resolvedImageUrlCache[cacheKey] = fallbackUrl;
+    return fallbackUrl;
   }
 }
