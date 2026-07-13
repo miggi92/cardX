@@ -49,7 +49,7 @@ class ShopScreen extends ConsumerWidget {
           width: width,
           height: height,
           webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-          errorBuilder: (_, __, ___) => fallback,
+          errorBuilder: (_, _, _) => fallback,
         );
       }
 
@@ -67,7 +67,7 @@ class ShopScreen extends ConsumerWidget {
       fit: fit,
       width: width,
       height: height,
-      errorBuilder: (_, __, ___) => fallback,
+      errorBuilder: (_, _, _) => fallback,
     );
   }
 

@@ -41,7 +41,7 @@ Widget _buildRemoteImage({
         width: width,
         height: height,
         webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-        errorBuilder: (_, __, ___) => fallback,
+        errorBuilder: (_, _, _) => fallback,
       );
     }
 
@@ -59,7 +59,7 @@ Widget _buildRemoteImage({
     fit: fit,
     width: width,
     height: height,
-    errorBuilder: (_, __, ___) => fallback,
+    errorBuilder: (_, _, _) => fallback,
   );
 }
 
