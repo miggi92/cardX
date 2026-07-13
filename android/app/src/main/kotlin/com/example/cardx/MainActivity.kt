@@ -1,4 +1,4 @@
-package com.example.cardx
+package dev.mgm12.cardx
 
 import io.flutter.embedding.android.FlutterActivity
 
