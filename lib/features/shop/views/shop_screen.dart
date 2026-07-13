@@ -176,11 +176,8 @@ class ShopScreen extends ConsumerWidget {
           ? Image.network(
               pack.logoUrl!,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(
-                _typeIcon(pack.type),
-                color: Colors.white,
-                size: 72,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  Icon(_typeIcon(pack.type), color: Colors.white, size: 72),
             )
           : Icon(
               pack.type == PackType.sport
@@ -416,9 +413,7 @@ class ShopScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              Center(
-                child: IgnorePointer(child: _buildCenterPackEmblem(pack)),
-              ),
+              Center(child: IgnorePointer(child: _buildCenterPackEmblem(pack))),
             ],
           ),
         ),
