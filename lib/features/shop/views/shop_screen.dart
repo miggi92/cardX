@@ -163,20 +163,26 @@ class ShopScreen extends ConsumerWidget {
         ],
       ),
       padding: const EdgeInsets.all(10),
-      child: isClubWithLogo
-          ? Image.network(
-              pack.logoUrl!,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Icon(_typeIcon(pack.type), color: Colors.white, size: 72),
-            )
-          : Icon(
-              pack.type == PackType.sport
-                  ? _sportIconFor(pack.filterValue)
-                  : _typeIcon(pack.type),
-              color: Colors.white,
-              size: 72,
-            ),
+      child: ClipOval(
+        child: Center(
+          child: isClubWithLogo
+              ? Image.network(
+                  pack.logoUrl!,
+                  fit: BoxFit.contain,
+                  width: 140,
+                  height: 140,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(_typeIcon(pack.type), color: Colors.white, size: 72),
+                )
+              : Icon(
+                  pack.type == PackType.sport
+                      ? _sportIconFor(pack.filterValue)
+                      : _typeIcon(pack.type),
+                  color: Colors.white,
+                  size: 72,
+                ),
+        ),
+      ),
     );
   }
 
