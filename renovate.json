@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "pub": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["pub"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major flutter dependencies",
+      "automerge": false
+    },
+    {
+      "matchManagers": ["pub"],
+      "matchDepTypes": ["dev_dependencies"],
+      "groupName": "flutter dev dependencies",
+      "automerge": true
+    }
+  ]
+}
