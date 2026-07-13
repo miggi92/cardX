@@ -152,14 +152,17 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             _buildHeroBanner(context, ref, canClaimReward),
-            const SizedBox(height: 32),
-            Text('Schnellzugriff', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 16),
-            _buildQuickActionsGrid(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+            _buildOverviewStrip(
+              context,
+              currentCoins: currentCoins,
+              collectedCards: uniqueCollectedCards,
+              totalCards: totalAvailableCards,
+            ),
+            const SizedBox(height: 20),
             totalAvailableCards.when(
               loading: () =>
                   _buildProgressSection(context, uniqueCollectedCards, 0, null),
@@ -188,81 +191,216 @@ class DashboardScreen extends ConsumerWidget {
     final brand = theme.extension<AppBrandTheme>()!;
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: brand.heroGradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: brand.surfaceShadow,
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            'Tägliches Gratis-Pack!',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          Positioned(
+            right: -18,
+            top: -24,
+            child: _buildHeroOrb(const Color(0x33FFFFFF), 108),
           ),
-          const SizedBox(height: 8),
-          Text(
-            canClaim
-                ? 'Hol dir jetzt deine neuen Spieler.'
-                : 'Du hast dein Pack heute schon abgeholt.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
+          Positioned(
+            left: -36,
+            bottom: -34,
+            child: _buildHeroOrb(const Color(0x22FFFFFF), 132),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: canClaim ? () => _claimFreePack(context, ref) : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: brand.surfaceBackground,
-              foregroundColor: theme.colorScheme.primary,
-              disabledBackgroundColor: brand.surfaceBackground.withValues(
-                alpha: 0.28,
-              ),
-              disabledForegroundColor: Colors.white70,
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tägliches Gratis-Pack',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  canClaim
+                      ? 'Hol dir jetzt neue Spieler und erweitere deine Sammlung.'
+                      : 'Dein Gratis-Pack ist bereits geöffnet. Komm morgen für das nächste zurück.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.88),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: canClaim
+                      ? () => _claimFreePack(context, ref)
+                      : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: brand.surfaceBackground,
+                    foregroundColor: theme.colorScheme.primary,
+                    disabledBackgroundColor: brand.surfaceBackground.withValues(
+                      alpha: 0.22,
+                    ),
+                    disabledForegroundColor: Colors.white70,
+                  ),
+                  child: Text(
+                    canClaim ? 'Pack öffnen' : 'Morgen wieder verfügbar',
+                  ),
+                ),
+              ],
             ),
-            child: Text(canClaim ? 'Jetzt öffnen' : 'Morgen wieder verfügbar'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionsGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.5,
-      children: [
-        _buildActionCard('Meine Sammlung', Icons.style, Colors.green),
-        _buildActionCard('Mein Team', Icons.shield, Colors.orange),
-        _buildActionCard('Store', Icons.store, Colors.blue),
-        _buildActionCard('Rangliste', Icons.emoji_events, Colors.red),
-      ],
+  Widget _buildHeroOrb(Color color, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, MaterialColor color) {
+  Widget _buildOverviewStrip(
+    BuildContext context, {
+    required int currentCoins,
+    required int collectedCards,
+    required AsyncValue<int> totalCards,
+  }) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 520;
+        final collectionCard = totalCards.when(
+          loading: () => _buildOverviewCard(
+            context,
+            icon: Icons.layers_rounded,
+            label: 'Sammlung',
+            value: '$collectedCards / ...',
+            accent: theme.colorScheme.primary,
+            background: theme.colorScheme.primaryContainer.withValues(
+              alpha: 0.28,
+            ),
+          ),
+          error: (_, _) => _buildOverviewCard(
+            context,
+            icon: Icons.layers_rounded,
+            label: 'Sammlung',
+            value: '$collectedCards Karten',
+            accent: theme.colorScheme.primary,
+            background: theme.colorScheme.primaryContainer.withValues(
+              alpha: 0.28,
+            ),
+          ),
+          data: (total) => _buildOverviewCard(
+            context,
+            icon: Icons.layers_rounded,
+            label: 'Sammlung',
+            value: '$collectedCards / $total',
+            accent: theme.colorScheme.primary,
+            background: theme.colorScheme.primaryContainer.withValues(
+              alpha: 0.28,
+            ),
+          ),
+        );
+
+        final cards = [
+          _buildOverviewCard(
+            context,
+            icon: Icons.monetization_on_rounded,
+            label: 'Coins',
+            value: currentCoins.toString(),
+            accent: brand.coinIcon,
+            background: brand.coinBackground,
+          ),
+          collectionCard,
+        ];
+
+        if (isWide) {
+          return Row(
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+            ],
+          );
+        }
+
+        return Column(
+          children: [cards[0], const SizedBox(height: 12), cards[1]],
+        );
+      },
+    );
+  }
+
+  Widget _buildOverviewCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color accent,
+    required Color background,
+  }) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.shade200),
+        color: brand.surfaceBackground,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: brand.surfaceBorder),
+        boxShadow: [
+          BoxShadow(
+            color: brand.surfaceShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Icon(icon, size: 32, color: color.shade700),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color.shade900,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: accent),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: brand.subtleText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -277,28 +415,59 @@ class DashboardScreen extends ConsumerWidget {
     double? progress,
   ) {
     final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
     final percentage = progress == null
         ? '...'
         : (progress * 100).toStringAsFixed(1);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Dein Fortschritt', style: theme.textTheme.titleLarge),
-        const SizedBox(height: 12),
-        LinearProgressIndicator(
-          value: progress,
-          minHeight: 10,
-          backgroundColor: theme.colorScheme.outlineVariant,
-          color: theme.colorScheme.primary,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '$collected von $total Karten gesammelt ($percentage%)',
-          style: theme.textTheme.bodyMedium,
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: brand.surfaceBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: brand.surfaceBorder),
+        boxShadow: [
+          BoxShadow(
+            color: brand.surfaceShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Dein Fortschritt',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 12,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            color: theme.colorScheme.primary,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$collected von $total Karten gesammelt',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 }
