@@ -552,20 +552,24 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       return matchesSearch && matchesRarity;
     }).toList();
 
-    final Map<String, Map<String, List<CardModel>>> groupedByTeamAndPlayer = {};
+    // team -> sport -> playerName -> cards
+    final Map<String, Map<String, Map<String, List<CardModel>>>>
+    groupedByTeamSportPlayer = {};
     for (final card in filteredCards) {
-      if (!groupedByTeamAndPlayer.containsKey(card.teamName)) {
-        groupedByTeamAndPlayer[card.teamName] = {};
-      }
-      if (!groupedByTeamAndPlayer[card.teamName]!.containsKey(
+      groupedByTeamSportPlayer.putIfAbsent(card.teamName, () => {});
+      groupedByTeamSportPlayer[card.teamName]!.putIfAbsent(
+        card.sport,
+        () => {},
+      );
+      groupedByTeamSportPlayer[card.teamName]![card.sport]!.putIfAbsent(
         card.playerName,
-      )) {
-        groupedByTeamAndPlayer[card.teamName]![card.playerName] = [];
-      }
-      groupedByTeamAndPlayer[card.teamName]![card.playerName]!.add(card);
+        () => [],
+      );
+      groupedByTeamSportPlayer[card.teamName]![card.sport]![card.playerName]!
+          .add(card);
     }
 
-    final sortedTeamNames = groupedByTeamAndPlayer.keys.toList()..sort();
+    final sortedTeamNames = groupedByTeamSportPlayer.keys.toList()..sort();
 
     return Scaffold(
       appBar: AppBar(title: Text('Sammlung (${myCards.length} gesamt)')),
@@ -647,15 +651,21 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     itemCount: sortedTeamNames.length,
                     itemBuilder: (context, index) {
                       final teamName = sortedTeamNames[index];
-                      final playersMap = groupedByTeamAndPlayer[teamName]!;
-                      final sortedPlayerNames = playersMap.keys.toList()
-                        ..sort();
+                      final sportMap = groupedByTeamSportPlayer[teamName]!;
+                      final sortedSports = sportMap.keys.toList()..sort();
+                      final hasMultipleSports = sortedSports.length > 1;
 
                       // Hole die Logo-URL dynamisch von der ersten Karte in dieser Vereins-Gruppe
-                      final String teamLogoUrl =
-                          playersMap[sortedPlayerNames.first]!
-                              .first
-                              .teamLogoUrl;
+                      final String teamLogoUrl = sportMap[sortedSports.first]!
+                          .values
+                          .first
+                          .first
+                          .teamLogoUrl;
+
+                      final int totalPlayerCount = sportMap.values.fold(
+                        0,
+                        (sum, playersMap) => sum + playersMap.length,
+                      );
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -692,71 +702,110 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  '${sortedPlayerNames.length} Spieler',
+                                  '$totalPlayerCount Spieler',
                                   style: theme.textTheme.bodyMedium,
                                 ),
                               ],
                             ),
                           ),
 
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  childAspectRatio:
-                                      0.58, // <-- WICHTIG: Verhältnis angepasst, damit die Badges unten Platz haben!
-                                ),
-                            itemCount: sortedPlayerNames.length,
-                            itemBuilder: (context, playerIndex) {
-                              final playerName = sortedPlayerNames[playerIndex];
-                              final cardsOfPlayer = playersMap[playerName]!;
+                          ...sortedSports.map((sport) {
+                            final playersMap = sportMap[sport]!;
+                            final sortedPlayerNames = playersMap.keys.toList()
+                              ..sort();
 
-                              cardsOfPlayer.sort(
-                                (a, b) => getRarityValue(
-                                  b.rarity,
-                                ).compareTo(getRarityValue(a.rarity)),
-                              );
-                              final bestCard = cardsOfPlayer.first;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (hasMultipleSports)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 8.0,
+                                      top: 4.0,
+                                    ),
+                                    child: Text(
+                                      sport.isNotEmpty
+                                          ? sport.toUpperCase()
+                                          : 'ALLGEMEIN',
+                                      style: theme.textTheme.labelLarge
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            letterSpacing: 1.2,
+                                          ),
+                                    ),
+                                  ),
 
-                              final Map<CardRarity, int> rarityCounts = {};
-                              for (final c in cardsOfPlayer) {
-                                rarityCounts[c.rarity] =
-                                    (rarityCounts[c.rarity] ?? 0) + 1;
-                              }
-
-                              // Logik für das "Mastered"-Feature (Alle Raritäten gesammelt)
-                              final bool hasAllRarities =
-                                  rarityCounts.length ==
-                                  CardRarity.values.length;
-
-                              return GestureDetector(
-                                onTap: () => showPlayerDetailsSheet(
-                                  playerName,
-                                  cardsOfPlayer,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        clipBehavior: Clip.none,
-                                        children: [CardWidget(card: bestCard)],
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 16,
+                                        mainAxisSpacing: 16,
+                                        childAspectRatio: 0.58,
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildRarityTrack(
-                                      rarityCounts,
-                                      hasAllRarities: hasAllRarities,
-                                    ),
-                                  ],
+                                  itemCount: sortedPlayerNames.length,
+                                  itemBuilder: (context, playerIndex) {
+                                    final playerName =
+                                        sortedPlayerNames[playerIndex];
+                                    final cardsOfPlayer =
+                                        playersMap[playerName]!;
+
+                                    cardsOfPlayer.sort(
+                                      (a, b) => getRarityValue(
+                                        b.rarity,
+                                      ).compareTo(getRarityValue(a.rarity)),
+                                    );
+                                    final bestCard = cardsOfPlayer.first;
+
+                                    final Map<CardRarity, int> rarityCounts =
+                                        {};
+                                    for (final c in cardsOfPlayer) {
+                                      rarityCounts[c.rarity] =
+                                          (rarityCounts[c.rarity] ?? 0) + 1;
+                                    }
+
+                                    final bool hasAllRarities =
+                                        rarityCounts.length ==
+                                        CardRarity.values.length;
+
+                                    return GestureDetector(
+                                      onTap: () => showPlayerDetailsSheet(
+                                        playerName,
+                                        cardsOfPlayer,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Expanded(
+                                            child: Stack(
+                                              fit: StackFit.expand,
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                CardWidget(card: bestCard),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          buildRarityTrack(
+                                            rarityCounts,
+                                            hasAllRarities: hasAllRarities,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
+
+                                if (hasMultipleSports &&
+                                    sport != sortedSports.last)
+                                  const SizedBox(height: 16),
+                              ],
+                            );
+                          }),
+
                           Divider(
                             height: 48,
                             thickness: 2,

@@ -43,6 +43,7 @@ class SupabaseCollectionRepository {
           playerImageUrl: playerImageUrl,
           rarity: CardRarity.values.byName(json['rarity']),
           stats: PlayerStats(goals: player['goals'], games: player['games']),
+          sport: (player['sport'] as String?) ?? '',
         ),
       );
     }

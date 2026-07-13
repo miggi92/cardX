@@ -10,6 +10,7 @@ class CardModel {
   final String playerImageUrl;
   final CardRarity rarity;
   final PlayerStats stats;
+  final String sport;
 
   const CardModel({
     required this.id,
@@ -20,6 +21,7 @@ class CardModel {
     required this.playerImageUrl,
     required this.rarity,
     required this.stats,
+    this.sport = '',
   });
 
   factory CardModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class CardModel {
       playerImageUrl: json['playerImageUrl'] as String,
       rarity: CardRarity.values.byName(json['rarity'] as String),
       stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>),
+      sport: (json['sport'] as String?) ?? '',
     );
   }
 
@@ -45,6 +48,7 @@ class CardModel {
       'playerImageUrl': playerImageUrl,
       'rarity': rarity.name,
       'stats': stats.toJson(),
+      'sport': sport,
     };
   }
 }

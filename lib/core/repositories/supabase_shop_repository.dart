@@ -161,6 +161,7 @@ class SupabaseShopRepository {
             goals: (player['goals'] as num).toInt(),
             games: (player['games'] as num).toInt(),
           ),
+          sport: (player['sport'] as String?) ?? '',
         ),
       );
     }
