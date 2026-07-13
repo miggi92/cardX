@@ -24,7 +24,13 @@ class ShopScreen extends ConsumerWidget {
     WidgetRef ref,
     PackModel pack,
   ) async {
-    final success = ref.read(coinProvider.notifier).spendCoins(pack.price);
+    final success = await ref
+        .read(coinProvider.notifier)
+        .spendCoins(pack.price);
+
+    if (!context.mounted) {
+      return;
+    }
 
     if (success) {
       // Zeige einen Ladeindikator an, während das Pack generiert wird
@@ -51,11 +57,28 @@ class ShopScreen extends ConsumerWidget {
             content: Text('Keine Spieler für dieses Pack gefunden!'),
           ),
         );
-        ref.read(coinProvider.notifier).addCoins(pack.price);
+        await ref.read(coinProvider.notifier).addCoins(pack.price);
         return;
       }
 
-      ref.read(collectionProvider.notifier).addCards(pulledCards);
+      final cardsSaved = await ref
+          .read(collectionProvider.notifier)
+          .addCards(pulledCards);
+      if (!context.mounted) {
+        return;
+      }
+      if (!cardsSaved) {
+        await ref.read(coinProvider.notifier).addCoins(pack.price);
+        if (!context.mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kauf abgebrochen, Coins wurden erstattet.'),
+          ),
+        );
+        return;
+      }
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -63,9 +86,11 @@ class ShopScreen extends ConsumerWidget {
         ),
       );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nicht genug Coins!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kauf fehlgeschlagen oder nicht genug Coins!'),
+        ),
+      );
     }
   }
 

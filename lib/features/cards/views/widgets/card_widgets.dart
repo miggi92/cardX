@@ -45,28 +45,24 @@ class CardWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      width: 35,
-                      height: 35,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Image.network(
-                        card.teamLogoUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.shield,
-                            color: Colors.white70,
-                            size: 20,
-                          );
-                        },
-                      ),
+                  Container(
+                    width: 35,
+                    height: 35,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Image.network(
+                      card.teamLogoUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.shield,
+                          color: Colors.white70,
+                          size: 20,
+                        );
+                      },
                     ),
                   ),
                   Text(
@@ -141,10 +137,6 @@ class CardWidget extends StatelessWidget {
           children: [
             _buildStatRow('Goals', card.stats.goals),
             _buildStatRow('Games', card.stats.games),
-          ],
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            
           ],
         ),
       ],

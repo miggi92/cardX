@@ -1,18 +1,24 @@
 import 'dart:ui';
 import 'package:cardx/features/navigation/views/main_navigation_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/providers/storage_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+const _supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: 'https://xzjdcoadvmrprdjlrzwc.supabase.co',
+);
+const _supabasePublishableKey = String.fromEnvironment(
+  'SUPABASE_PUBLISHABLE_KEY',
+  defaultValue: 'sb_publishable_88t6XwiWV3auqXQLVgWbhw_H46ODCw3',
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
   await Supabase.initialize(
-    url: 'https://xzjdcoadvmrprdjlrzwc.supabase.co',
-    publishableKey: 'sb_publishable_88t6XwiWV3auqXQLVgWbhw_H46ODCw3',
+    url: _supabaseUrl,
+    publishableKey: _supabasePublishableKey,
   );
 
   final supabase = Supabase.instance.client;
@@ -20,15 +26,7 @@ void main() async {
     await supabase.auth.signInAnonymously();
   }
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        // Hier überschreiben wir den Error-Provider mit der echten, geladenen Instanz!
-        sharedPrefsProvider.overrideWithValue(prefs),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

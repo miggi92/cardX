@@ -14,6 +14,8 @@ class DemoCardScreen extends StatelessWidget {
       playerName: 'John Doe',
       position: 'TW',
       teamName: 'Home Team',
+      teamLogoUrl: '',
+      playerImageUrl: '',
       rarity: CardRarity.epic,
       stats: const PlayerStats(goals: 30, games: 25),
     );

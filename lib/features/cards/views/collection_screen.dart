@@ -62,9 +62,34 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     }
   }
 
-  void sellCard(CardModel card, int sellValue) {
-    ref.read(collectionProvider.notifier).removeCard(card.id);
-    ref.read(coinProvider.notifier).addCoins(sellValue);
+  Future<bool> sellCard(CardModel card, int sellValue) async {
+    final removed = await ref
+        .read(collectionProvider.notifier)
+        .removeCard(card.id);
+    if (!removed) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Karte konnte nicht verkauft werden.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    final credited = await ref.read(coinProvider.notifier).addCoins(sellValue);
+    if (!credited) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Coins konnten nicht gutgeschrieben werden.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    if (!mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -74,6 +99,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+    return true;
   }
 
   void showPlayerDetailsSheet(String playerName, List<CardModel> cards) {
@@ -143,8 +169,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           ),
                           if (count > 1)
                             ElevatedButton.icon(
-                              onPressed: () {
-                                sellCard(card, sellValue);
+                              onPressed: () async {
+                                final sold = await sellCard(card, sellValue);
+                                if (!sold) {
+                                  return;
+                                }
                                 setSheetState(() {
                                   exactCounts[id] = exactCounts[id]! - 1;
                                 });
@@ -205,9 +234,41 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                ref.read(collectionProvider.notifier).removeDuplicates();
-                ref.read(coinProvider.notifier).addCoins(totalValue);
+              onPressed: () async {
+                final duplicatesRemoved = await ref
+                    .read(collectionProvider.notifier)
+                    .removeDuplicates();
+                if (!duplicatesRemoved) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Duplikate konnten nicht verkauft werden.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                final coinsAdded = await ref
+                    .read(coinProvider.notifier)
+                    .addCoins(totalValue);
+                if (!coinsAdded) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Coins konnten nicht gutgeschrieben werden.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (!context.mounted) return;
+
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

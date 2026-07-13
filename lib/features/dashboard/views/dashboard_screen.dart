@@ -10,6 +10,16 @@ class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   Future<void> _claimFreePack(BuildContext context, WidgetRef ref) async {
+    final canClaim = ref
+        .read(dailyRewardProvider)
+        .maybeWhen(data: DailyRewardNotifier.canClaimFor, orElse: () => false);
+    if (!canClaim) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gratis-Pack heute bereits abgeholt.')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -37,8 +47,35 @@ class DashboardScreen extends ConsumerWidget {
         return;
       }
 
-      ref.read(dailyRewardProvider.notifier).claimReward();
-      ref.read(collectionProvider.notifier).addCards(pulledCards);
+      final rewardClaimed = await ref
+          .read(dailyRewardProvider.notifier)
+          .claimReward();
+      if (!context.mounted) {
+        return;
+      }
+      if (!rewardClaimed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gratis-Pack konnte nicht gespeichert werden.'),
+          ),
+        );
+        return;
+      }
+
+      final cardsSaved = await ref
+          .read(collectionProvider.notifier)
+          .addCards(pulledCards);
+      if (!context.mounted) {
+        return;
+      }
+      if (!cardsSaved) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Karten konnten nicht gespeichert werden.'),
+          ),
+        );
+        return;
+      }
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -64,8 +101,12 @@ class DashboardScreen extends ConsumerWidget {
     final uniqueCollectedCards = myCards.map((card) => card.id).toSet().length;
     final totalAvailableCards = ref.watch(totalAvailableCardsProvider);
 
-    ref.watch(dailyRewardProvider);
-    final canClaimReward = ref.read(dailyRewardProvider.notifier).canClaim;
+    final dailyReward = ref.watch(dailyRewardProvider);
+    final canClaimReward = dailyReward.when(
+      data: DailyRewardNotifier.canClaimFor,
+      loading: () => false,
+      error: (_, _) => false,
+    );
 
     return Scaffold(
       appBar: AppBar(

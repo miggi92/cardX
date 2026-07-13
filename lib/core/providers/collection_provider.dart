@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../../features/cards/models/card_model.dart';
 import '../repositories/supabase_collection_repository.dart';
 
@@ -19,28 +20,46 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
     try {
       state = await _repository.getCards();
     } catch (e) {
-      print("Fehler beim Laden der Karten: $e");
+      debugPrint('Fehler beim Laden der Karten: $e');
     }
   }
 
-  void addCards(List<CardModel> newCards) {
+  Future<bool> addCards(List<CardModel> newCards) async {
+    final previousState = state;
     state = [...state, ...newCards];
-    _repository.addCards(newCards);
+    try {
+      await _repository.addCards(newCards);
+      return true;
+    } catch (e) {
+      state = previousState;
+      debugPrint('Fehler beim Hinzufuegen der Karten: $e');
+      return false;
+    }
   }
 
-  void removeCard(String cardId) {
+  Future<bool> removeCard(String cardId) async {
     final index = state.indexWhere((card) => card.id == cardId);
 
     if (index != -1) {
+      final previousState = state;
       final newState = List<CardModel>.from(state);
       newState.removeAt(index);
       state = newState;
 
-      _repository.removeCard(cardId);
+      try {
+        await _repository.removeCard(cardId);
+        return true;
+      } catch (e) {
+        state = previousState;
+        debugPrint('Fehler beim Entfernen der Karte: $e');
+        return false;
+      }
     }
+
+    return false;
   }
 
-  void removeDuplicates() {
+  Future<bool> removeDuplicates() async {
     final Set<String> seenIds = {};
     final List<CardModel> uniqueCards = [];
 
@@ -52,9 +71,19 @@ class CollectionNotifier extends Notifier<List<CardModel>> {
     }
 
     if (state.length != uniqueCards.length) {
+      final previousState = state;
       state = uniqueCards;
-      _repository.syncCollection(state);
+      try {
+        await _repository.syncCollection(state);
+        return true;
+      } catch (e) {
+        state = previousState;
+        debugPrint('Fehler beim Synchronisieren der Sammlung: $e');
+        return false;
+      }
     }
+
+    return true;
   }
 }
 

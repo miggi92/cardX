@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/supabase_coin_repository.dart';
 
 // Wir injizieren jetzt das Supabase-Repository
@@ -17,22 +18,37 @@ class CoinNotifier extends Notifier<int> {
     try {
       state = await _repository.getCoins();
     } catch (e) {
-      print("Fehler beim Laden der Coins: $e");
+      debugPrint('Fehler beim Laden der Coins: $e');
     }
   }
 
-  bool spendCoins(int amount) {
+  Future<bool> spendCoins(int amount) async {
     if (state >= amount) {
+      final previousState = state;
       state -= amount; // Optimistic Update (UI sofort anpassen)
-      _repository.saveCoins(state); // Im Hintergrund an Supabase senden
+      try {
+        await _repository.saveCoins(state);
+      } catch (e) {
+        state = previousState;
+        debugPrint('Fehler beim Speichern der Coins: $e');
+        return false;
+      }
       return true;
     }
     return false;
   }
 
-  void addCoins(int amount) {
+  Future<bool> addCoins(int amount) async {
+    final previousState = state;
     state += amount;
-    _repository.saveCoins(state);
+    try {
+      await _repository.saveCoins(state);
+      return true;
+    } catch (e) {
+      state = previousState;
+      debugPrint('Fehler beim Speichern der Coins: $e');
+      return false;
+    }
   }
 }
 

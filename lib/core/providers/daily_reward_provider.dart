@@ -1,36 +1,45 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'storage_provider.dart';
+import '../repositories/supabase_coin_repository.dart';
 
-class DailyRewardNotifier extends Notifier<DateTime?> {
-  late final _prefs = ref.watch(sharedPrefsProvider);
-  static const _lastClaimKey = 'last_claim_date';
+final dailyRewardRepoProvider = Provider((ref) => SupabaseCoinRepository());
+
+class DailyRewardNotifier extends AsyncNotifier<DateTime?> {
+  late final _repository = ref.watch(dailyRewardRepoProvider);
 
   @override
-  DateTime? build() {
-    final dateString = _prefs.getString(_lastClaimKey);
-    if (dateString != null) {
-      return DateTime.parse(dateString);
+  Future<DateTime?> build() async {
+    return _repository.getLastFreePackDate();
+  }
+
+  static bool canClaimFor(DateTime? lastClaim) {
+    if (lastClaim == null) return true;
+    final now = DateTime.now();
+    return lastClaim.year != now.year ||
+        lastClaim.month != now.month ||
+        lastClaim.day != now.day;
+  }
+
+  Future<bool> claimReward() async {
+    final lastClaim = state.asData?.value;
+    if (!canClaimFor(lastClaim)) {
+      return false;
     }
-    return null;
-  }
 
-  bool get canClaim {
-    if (state == null) return true;
+    final previousState = state;
     final now = DateTime.now();
-    return state!.year != now.year ||
-        state!.month != now.month ||
-        state!.day != now.day;
-  }
+    state = AsyncData(now);
 
-  void claimReward() {
-    final now = DateTime.now();
-    state = now;
-    _prefs.setString(_lastClaimKey, now.toIso8601String());
+    try {
+      await _repository.updateLastFreePackDate();
+      return true;
+    } catch (_) {
+      state = previousState;
+      return false;
+    }
   }
 }
 
-final dailyRewardProvider = NotifierProvider<DailyRewardNotifier, DateTime?>(
-  () {
-    return DailyRewardNotifier();
-  },
-);
+final dailyRewardProvider =
+    AsyncNotifierProvider<DailyRewardNotifier, DateTime?>(() {
+      return DailyRewardNotifier();
+    });
