@@ -52,7 +52,7 @@ class CardWidget extends StatelessWidget {
                       width: 35,
                       height: 35,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       padding: const EdgeInsets.all(4),

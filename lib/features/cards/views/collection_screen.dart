@@ -424,7 +424,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.1),
+                                    color: Colors.grey.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   clipBehavior: Clip.hardEdge,
@@ -542,7 +542,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: hasAllRarities
-                                            ? Colors.amber.withOpacity(0.15)
+                                            ? Colors.amber.withValues(
+                                                alpha: 0.15,
+                                              )
                                             : Colors.black12,
                                         borderRadius: BorderRadius.circular(12),
                                         border: hasAllRarities
