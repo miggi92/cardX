@@ -14,6 +14,16 @@ import 'pack_reveal_screen.dart';
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
 
+  double _responsiveIconSize(
+    BoxConstraints constraints, {
+    required double factor,
+    required double min,
+    required double max,
+  }) {
+    final shortestSide = constraints.biggest.shortestSide;
+    return clampDouble(shortestSide * factor, min, max);
+  }
+
   bool _isSvgUrl(String url) {
     final uri = Uri.tryParse(url);
     final path = uri?.path.toLowerCase() ?? url.toLowerCase();
@@ -211,26 +221,37 @@ class ShopScreen extends ConsumerWidget {
       ),
       padding: const EdgeInsets.all(10),
       child: ClipOval(
-        child: Center(
-          child: isClubWithLogo
-              ? _buildRemoteImage(
-                  url: pack.logoUrl!,
-                  fit: BoxFit.contain,
-                  width: 140,
-                  height: 140,
-                  fallback: Icon(
-                    _typeIcon(pack.type),
-                    color: Colors.white,
-                    size: 72,
-                  ),
-                )
-              : Icon(
-                  pack.type == PackType.sport
-                      ? _sportIconFor(pack.filterValue)
-                      : _typeIcon(pack.type),
-                  color: Colors.white,
-                  size: 72,
-                ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final iconSize = _responsiveIconSize(
+              constraints,
+              factor: 0.52,
+              min: 36,
+              max: 72,
+            );
+
+            return Center(
+              child: isClubWithLogo
+                  ? _buildRemoteImage(
+                      url: pack.logoUrl!,
+                      fit: BoxFit.contain,
+                      width: 140,
+                      height: 140,
+                      fallback: Icon(
+                        _typeIcon(pack.type),
+                        color: Colors.white,
+                        size: iconSize,
+                      ),
+                    )
+                  : Icon(
+                      pack.type == PackType.sport
+                          ? _sportIconFor(pack.filterValue)
+                          : _typeIcon(pack.type),
+                      color: Colors.white,
+                      size: iconSize,
+                    ),
+            );
+          },
         ),
       ),
     );
@@ -248,10 +269,24 @@ class ShopScreen extends ConsumerWidget {
         height: 24,
         color: Colors.white,
         padding: const EdgeInsets.all(2),
-        child: _buildRemoteImage(
-          url: logoUrl,
-          fit: BoxFit.contain,
-          fallback: Icon(_typeIcon(pack.type), color: Colors.black54, size: 14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final iconSize = _responsiveIconSize(
+              constraints,
+              factor: 0.7,
+              min: 10,
+              max: 14,
+            );
+            return _buildRemoteImage(
+              url: logoUrl,
+              fit: BoxFit.contain,
+              fallback: Icon(
+                _typeIcon(pack.type),
+                color: Colors.black54,
+                size: iconSize,
+              ),
+            );
+          },
         ),
       ),
     );
