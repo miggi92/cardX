@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/daily_reward_provider.dart';
+import '../../../core/providers/shop_provider.dart';
 import '../../cards/models/card_model.dart';
 import '../../cards/models/card_rarity.dart';
 import '../../cards/models/player_stats.dart';
@@ -42,12 +43,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentCoins = ref.watch(coinProvider);
     final myCards = ref.watch(collectionProvider);
+    final totalAvailableCards = ref.watch(totalAvailableCardsProvider);
 
     ref.watch(dailyRewardProvider);
     final canClaimReward = ref.read(dailyRewardProvider.notifier).canClaim;
-
-    const int maxCardsInSet = 150;
-    final double progressValue = myCards.length / maxCardsInSet;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,7 +99,20 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _buildQuickActionsGrid(),
             const SizedBox(height: 32),
-            _buildProgressSection(myCards.length, maxCardsInSet, progressValue),
+            totalAvailableCards.when(
+              loading: () => _buildProgressSection(myCards.length, 0, null),
+              error: (_, __) => _buildProgressSection(myCards.length, 0, null),
+              data: (maxCardsInSet) {
+                final progressValue = maxCardsInSet == 0
+                    ? 0.0
+                    : (myCards.length / maxCardsInSet).clamp(0.0, 1.0);
+                return _buildProgressSection(
+                  myCards.length,
+                  maxCardsInSet,
+                  progressValue,
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -193,7 +205,11 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressSection(int collected, int total, double progress) {
+  Widget _buildProgressSection(int collected, int total, double? progress) {
+    final percentage = progress == null
+        ? '...'
+        : (progress * 100).toStringAsFixed(1);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -211,7 +227,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '$collected von $total Karten gesammelt (${(progress * 100).toStringAsFixed(1)}%)',
+          '$collected von $total Karten gesammelt ($percentage%)',
           style: const TextStyle(color: Colors.grey),
         ),
       ],
