@@ -7,6 +7,8 @@ class SupabaseCollectionRepository {
   final _supabase = Supabase.instance.client;
   final Map<String, String> _resolvedImageUrlCache = {};
 
+  static const _fallbackExtensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+
   Future<List<CardModel>> getCards() async {
     final userId = _supabase.auth.currentUser!.id;
 
@@ -103,13 +105,42 @@ class SupabaseCollectionRepository {
     }
 
     final storage = _supabase.storage.from(bucketName);
-    const extensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 
-    for (final extension in extensions) {
+    try {
+      final files = await storage.list(
+        searchOptions: const SearchOptions(limit: 100, search: ''),
+      );
+
+      final matchingFiles = files
+          .where((file) => _matchesObjectId(file.name, objectId))
+          .toList();
+
+      if (matchingFiles.isNotEmpty) {
+        final preferred = matchingFiles.firstWhere(
+          (file) => _isSupportedImageMime(_mimeTypeOf(file)),
+          orElse: () => matchingFiles.first,
+        );
+
+        final mimeType = _mimeTypeOf(preferred);
+        var url = storage.getPublicUrl(preferred.name);
+        if (_isSvgMime(mimeType)) {
+          url = _tagWithSvgMime(url);
+        }
+        _resolvedImageUrlCache[cacheKey] = url;
+        return url;
+      }
+    } catch (_) {
+      // Fall back to extension probing below.
+    }
+
+    for (final extension in _fallbackExtensions) {
       final path = '$objectId.$extension';
       try {
         if (await storage.exists(path)) {
-          final url = storage.getPublicUrl(path);
+          var url = storage.getPublicUrl(path);
+          if (extension == 'svg') {
+            url = _tagWithSvgMime(url);
+          }
           _resolvedImageUrlCache[cacheKey] = url;
           return url;
         }
@@ -121,5 +152,27 @@ class SupabaseCollectionRepository {
     final fallbackUrl = storage.getPublicUrl('$objectId.png');
     _resolvedImageUrlCache[cacheKey] = fallbackUrl;
     return fallbackUrl;
+  }
+
+  bool _matchesObjectId(String fileName, String objectId) {
+    return fileName == objectId || fileName.startsWith('$objectId.');
+  }
+
+  String? _mimeTypeOf(FileObject file) {
+    final mime = file.metadata?['mimetype'];
+    return mime is String ? mime.toLowerCase() : null;
+  }
+
+  bool _isSupportedImageMime(String? mimeType) {
+    return mimeType != null && mimeType.startsWith('image/');
+  }
+
+  bool _isSvgMime(String? mimeType) {
+    return mimeType == 'image/svg+xml';
+  }
+
+  String _tagWithSvgMime(String url) {
+    final uri = Uri.parse(url);
+    return uri.replace(fragment: 'mime=image/svg+xml').toString();
   }
 }

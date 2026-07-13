@@ -13,8 +13,13 @@ import 'pack_reveal_screen.dart';
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
 
-  bool _isSvgUrl(String url) =>
-      url.toLowerCase().split('?').first.endsWith('.svg');
+  bool _isSvgUrl(String url) {
+    final uri = Uri.tryParse(url);
+    final path = uri?.path.toLowerCase() ?? url.toLowerCase();
+    final fragment = uri?.fragment.toLowerCase() ?? '';
+
+    return path.endsWith('.svg') || fragment.contains('mime=image/svg+xml');
+  }
 
   Widget _buildRemoteImage({
     required String url,
