@@ -2,6 +2,7 @@ import 'package:cardx/features/cards/views/collection_screen.dart';
 import 'package:cardx/features/dashboard/views/dashboard_screen.dart';
 import 'package:cardx/features/shop/views/shop_screen.dart';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -21,20 +22,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        selectedItemColor: Theme.of(context).primaryColor,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.style), label: 'Sammlung'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
+        backgroundColor: brand.surfaceBackground,
+        indicatorColor: theme.colorScheme.primaryContainer,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.style_outlined),
+            selectedIcon: const Icon(Icons.style),
+            label: 'Sammlung',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.store_outlined),
+            selectedIcon: const Icon(Icons.store),
+            label: 'Shop',
+          ),
         ],
       ),
     );
