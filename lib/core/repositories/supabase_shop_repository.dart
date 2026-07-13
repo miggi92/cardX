@@ -177,7 +177,7 @@ class SupabaseShopRepository {
     }
 
     final storage = _supabase.storage.from(bucketName);
-    const extensions = ['png', 'jpg', 'jpeg', 'webp'];
+    const extensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 
     for (final extension in extensions) {
       final path = '$objectId.$extension';

@@ -1,6 +1,7 @@
 import 'package:cardx/core/providers/shop_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../cards/models/card_model.dart';
 import '../../../core/providers/coin_provider.dart';
@@ -11,6 +12,35 @@ import 'pack_reveal_screen.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
+
+  bool _isSvgUrl(String url) =>
+      url.toLowerCase().split('?').first.endsWith('.svg');
+
+  Widget _buildRemoteImage({
+    required String url,
+    required BoxFit fit,
+    double? width,
+    double? height,
+    required Widget fallback,
+  }) {
+    if (_isSvgUrl(url)) {
+      return SvgPicture.network(
+        url,
+        fit: fit,
+        width: width,
+        height: height,
+        placeholderBuilder: (_) => fallback,
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: fit,
+      width: width,
+      height: height,
+      errorBuilder: (_, __, ___) => fallback,
+    );
+  }
 
   Future<List<CardModel>> generatePulls(WidgetRef ref, PackModel pack) async {
     final repo = ref.read(shopRepoProvider);
@@ -166,13 +196,16 @@ class ShopScreen extends ConsumerWidget {
       child: ClipOval(
         child: Center(
           child: isClubWithLogo
-              ? Image.network(
-                  pack.logoUrl!,
+              ? _buildRemoteImage(
+                  url: pack.logoUrl!,
                   fit: BoxFit.contain,
                   width: 140,
                   height: 140,
-                  errorBuilder: (_, __, ___) =>
-                      Icon(_typeIcon(pack.type), color: Colors.white, size: 72),
+                  fallback: Icon(
+                    _typeIcon(pack.type),
+                    color: Colors.white,
+                    size: 72,
+                  ),
                 )
               : Icon(
                   pack.type == PackType.sport
@@ -198,11 +231,10 @@ class ShopScreen extends ConsumerWidget {
         height: 24,
         color: Colors.white,
         padding: const EdgeInsets.all(2),
-        child: Image.network(
-          logoUrl,
+        child: _buildRemoteImage(
+          url: logoUrl,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) =>
-              Icon(_typeIcon(pack.type), color: Colors.black54, size: 14),
+          fallback: Icon(_typeIcon(pack.type), color: Colors.black54, size: 14),
         ),
       ),
     );

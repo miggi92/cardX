@@ -1,6 +1,7 @@
 import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/providers/collection_provider.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -12,6 +13,35 @@ class CollectionScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<CollectionScreen> createState() => _CollectionScreenState();
+}
+
+bool _isSvgUrl(String url) =>
+    url.toLowerCase().split('?').first.endsWith('.svg');
+
+Widget _buildRemoteImage({
+  required String url,
+  required BoxFit fit,
+  required Widget fallback,
+  double? width,
+  double? height,
+}) {
+  if (_isSvgUrl(url)) {
+    return SvgPicture.network(
+      url,
+      fit: fit,
+      width: width,
+      height: height,
+      placeholderBuilder: (_) => fallback,
+    );
+  }
+
+  return Image.network(
+    url,
+    fit: fit,
+    width: width,
+    height: height,
+    errorBuilder: (_, __, ___) => fallback,
+  );
 }
 
 class _CollectionScreenState extends ConsumerState<CollectionScreen> {
@@ -628,16 +658,14 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     shape: BoxShape.circle,
                                   ),
                                   clipBehavior: Clip.hardEdge,
-                                  child: Image.network(
-                                    teamLogoUrl,
+                                  child: _buildRemoteImage(
+                                    url: teamLogoUrl,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                        Icons.shield,
-                                        color: Colors.blueAccent,
-                                        size: 24,
-                                      );
-                                    },
+                                    fallback: const Icon(
+                                      Icons.shield,
+                                      color: Colors.blueAccent,
+                                      size: 24,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),

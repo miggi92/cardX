@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../models/card_model.dart';
 import '../../models/card_rarity.dart';
@@ -21,6 +22,35 @@ class CardWidget extends StatelessWidget {
       case CardRarity.legendary:
         return brand.rarityLegendary;
     }
+  }
+
+  bool _isSvgUrl(String url) =>
+      url.toLowerCase().split('?').first.endsWith('.svg');
+
+  Widget _buildRemoteImage({
+    required String url,
+    required BoxFit fit,
+    double? width,
+    double? height,
+    required Widget fallback,
+  }) {
+    if (_isSvgUrl(url)) {
+      return SvgPicture.network(
+        url,
+        fit: fit,
+        width: width,
+        height: height,
+        placeholderBuilder: (_) => fallback,
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: fit,
+      width: width,
+      height: height,
+      errorBuilder: (_, __, ___) => fallback,
+    );
   }
 
   @override
@@ -59,16 +89,14 @@ class CardWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: Image.network(
-                      card.teamLogoUrl,
+                    child: _buildRemoteImage(
+                      url: card.teamLogoUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.shield,
-                          color: brand.cardTextSecondary,
-                          size: 20,
-                        );
-                      },
+                      fallback: Icon(
+                        Icons.shield,
+                        color: brand.cardTextSecondary,
+                        size: 20,
+                      ),
                     ),
                   ),
                   Text(
@@ -81,16 +109,14 @@ class CardWidget extends StatelessWidget {
               ),
               Expanded(
                 child: Center(
-                  child: Image.network(
-                    card.playerImageUrl,
+                  child: _buildRemoteImage(
+                    url: card.playerImageUrl,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.person,
-                        color: brand.cardTextSecondary,
-                        size: 250,
-                      );
-                    },
+                    fallback: Icon(
+                      Icons.person,
+                      color: brand.cardTextSecondary,
+                      size: 250,
+                    ),
                   ),
                 ),
               ),
