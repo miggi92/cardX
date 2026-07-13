@@ -118,6 +118,28 @@ class ShopScreen extends ConsumerWidget {
     }
   }
 
+  Widget _buildPackLogo(PackModel pack) {
+    final logoUrl = pack.logoUrl;
+    if (pack.type != PackType.club || logoUrl == null || logoUrl.isEmpty) {
+      return Icon(_typeIcon(pack.type), color: Colors.white, size: 16);
+    }
+
+    return ClipOval(
+      child: Container(
+        width: 24,
+        height: 24,
+        color: Colors.white,
+        padding: const EdgeInsets.all(2),
+        child: Image.network(
+          logoUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) =>
+              Icon(_typeIcon(pack.type), color: Colors.black54, size: 14),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCoinsChip(BuildContext context, int currentCoins) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
@@ -236,11 +258,7 @@ class ShopScreen extends ConsumerWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                _typeIcon(pack.type),
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                              _buildPackLogo(pack),
                               const SizedBox(width: 6),
                               Text(
                                 _typeLabel(pack.type),
@@ -324,6 +342,42 @@ class ShopScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (pack.type == PackType.club &&
+                  pack.logoUrl != null &&
+                  pack.logoUrl!.isNotEmpty)
+                Center(
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.58),
+                          width: 2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x2B000000),
+                            blurRadius: 14,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      child: Image.network(
+                        pack.logoUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          _typeIcon(pack.type),
+                          color: Colors.black54,
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

@@ -8,6 +8,7 @@ class PackModel {
   final int price;
   final PackType type;
   final String filterValue;
+  final String? logoUrl;
   final List<Color> gradientColors;
 
   const PackModel({
@@ -16,6 +17,7 @@ class PackModel {
     required this.price,
     required this.type,
     required this.filterValue,
+    this.logoUrl,
     required this.gradientColors,
   });
 }

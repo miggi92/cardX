@@ -12,6 +12,35 @@ class SupabaseShopRepository {
 
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase.from('packs').select();
+    final clubPacks = response
+        .where((json) => json['type'] == PackType.club.name)
+        .toList();
+
+    final clubNames = clubPacks
+        .map((json) => json['filter_value'] as String?)
+        .whereType<String>()
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+
+    final Map<String, String> clubLogoByName = {};
+    if (clubNames.isNotEmpty) {
+      final clubsResponse = await _supabase
+          .from('clubs')
+          .select('id, name')
+          .inFilter('name', clubNames);
+
+      for (final club in clubsResponse) {
+        final clubName = club['name'] as String?;
+        final clubId = club['id'];
+        if (clubName != null && clubId != null) {
+          clubLogoByName[clubName] = _supabase.storage
+              .from('club-logos')
+              .getPublicUrl('$clubId.png');
+        }
+      }
+    }
+
     return response.map((json) {
       final List<dynamic> colorsList = json['gradient_colors'];
       final List<Color> colors = colorsList.map((hex) {
@@ -19,12 +48,16 @@ class SupabaseShopRepository {
         return Color(int.parse('FF$hexColor', radix: 16));
       }).toList();
 
+      final type = PackType.values.byName(json['type'] as String);
+      final filterValue = json['filter_value'] as String;
+
       return PackModel(
         id: json['id'],
         name: json['name'],
         price: json['price'],
-        type: PackType.values.byName(json['type']),
-        filterValue: json['filter_value'],
+        type: type,
+        filterValue: filterValue,
+        logoUrl: type == PackType.club ? clubLogoByName[filterValue] : null,
         gradientColors: colors,
       );
     }).toList();
