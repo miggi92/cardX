@@ -120,31 +120,18 @@ class ShopScreen extends ConsumerWidget {
 
   IconData _sportIconFor(String sport) {
     final value = sport.toLowerCase();
-    if (value.contains('fussball') ||
-        value.contains('fußball') ||
-        value.contains('soccer') ||
-        value.contains('football')) {
-      return Icons.sports_soccer_outlined;
-    }
-    if (value.contains('basket')) {
-      return Icons.sports_basketball_outlined;
-    }
-    if (value.contains('tennis')) {
-      return Icons.sports_tennis_outlined;
-    }
-    if (value.contains('hockey')) {
-      return Icons.sports_hockey_outlined;
-    }
-    if (value.contains('baseball')) {
-      return Icons.sports_baseball_outlined;
-    }
-    if (value.contains('golf')) {
-      return Icons.sports_golf_outlined;
-    }
-    if (value.contains('volley')) {
-      return Icons.sports_volleyball_outlined;
-    }
-    return Icons.sports_outlined;
+    return switch (value) {
+      _ when value.contains('soccer') => Icons.sports_soccer_outlined,
+      _ when value.contains('football') => Icons.sports_football_outlined,
+      _ when value.contains('basket') => Icons.sports_basketball_outlined,
+      _ when value.contains('handball') => Icons.sports_handball_outlined,
+      _ when value.contains('tennis') => Icons.sports_tennis_outlined,
+      _ when value.contains('hockey') => Icons.sports_hockey_outlined,
+      _ when value.contains('baseball') => Icons.sports_baseball_outlined,
+      _ when value.contains('golf') => Icons.sports_golf_outlined,
+      _ when value.contains('volley') => Icons.sports_volleyball_outlined,
+      _ => Icons.sports_outlined,
+    };
   }
 
   Widget _buildCenterPackEmblem(PackModel pack) {
