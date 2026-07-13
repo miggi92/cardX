@@ -178,6 +178,18 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
     required this.surfaceBorder,
     required this.surfaceShadow,
     required this.subtleText,
+    required this.cardBorder,
+    required this.cardShadow,
+    required this.cardBackBackgroundStart,
+    required this.cardBackBackgroundEnd,
+    required this.cardBackBorder,
+    required this.cardBackAccent,
+    required this.cardTextPrimary,
+    required this.cardTextSecondary,
+    required this.rarityCommon,
+    required this.rarityRare,
+    required this.rarityEpic,
+    required this.rarityLegendary,
   });
 
   final Color pageBackgroundStart;
@@ -192,6 +204,18 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
   final Color surfaceBorder;
   final Color surfaceShadow;
   final Color subtleText;
+  final Color cardBorder;
+  final Color cardShadow;
+  final Color cardBackBackgroundStart;
+  final Color cardBackBackgroundEnd;
+  final Color cardBackBorder;
+  final Color cardBackAccent;
+  final Color cardTextPrimary;
+  final Color cardTextSecondary;
+  final Color rarityCommon;
+  final Color rarityRare;
+  final Color rarityEpic;
+  final Color rarityLegendary;
 
   LinearGradient get pageGradient => LinearGradient(
     begin: Alignment.topCenter,
@@ -218,6 +242,18 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
     surfaceBorder: Color(0xFFDCE7FF),
     surfaceShadow: Color(0x1A000000),
     subtleText: Color(0xFF4A5877),
+    cardBorder: Color(0xFFFFFFFF),
+    cardShadow: Color(0x1A000000),
+    cardBackBackgroundStart: Color(0xFF17324F),
+    cardBackBackgroundEnd: Color(0xFF0E1B2D),
+    cardBackBorder: Color(0xFFFFC85E),
+    cardBackAccent: Color(0xFFFFC85E),
+    cardTextPrimary: Color(0xFFFFFFFF),
+    cardTextSecondary: Color(0xD9FFFFFF),
+    rarityCommon: Color(0xFFB6BEC8),
+    rarityRare: Color(0xFF4D8DFF),
+    rarityEpic: Color(0xFFB05CFF),
+    rarityLegendary: Color(0xFFFFA84A),
   );
 
   static const dark = AppBrandTheme(
@@ -233,6 +269,18 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
     surfaceBorder: Color(0xFF2A3857),
     surfaceShadow: Color(0x33000000),
     subtleText: Color(0xFFB5C0D9),
+    cardBorder: Color(0xFFEEF2FF),
+    cardShadow: Color(0x33000000),
+    cardBackBackgroundStart: Color(0xFF1D2E45),
+    cardBackBackgroundEnd: Color(0xFF121C31),
+    cardBackBorder: Color(0xFFFFC85E),
+    cardBackAccent: Color(0xFFFFC85E),
+    cardTextPrimary: Color(0xFFFFFFFF),
+    cardTextSecondary: Color(0xCCFFFFFF),
+    rarityCommon: Color(0xFF96A0AD),
+    rarityRare: Color(0xFF6D9CFF),
+    rarityEpic: Color(0xFFC073FF),
+    rarityLegendary: Color(0xFFFFB45C),
   );
 
   @override
@@ -249,6 +297,18 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
     Color? surfaceBorder,
     Color? surfaceShadow,
     Color? subtleText,
+    Color? cardBorder,
+    Color? cardShadow,
+    Color? cardBackBackgroundStart,
+    Color? cardBackBackgroundEnd,
+    Color? cardBackBorder,
+    Color? cardBackAccent,
+    Color? cardTextPrimary,
+    Color? cardTextSecondary,
+    Color? rarityCommon,
+    Color? rarityRare,
+    Color? rarityEpic,
+    Color? rarityLegendary,
   }) {
     return AppBrandTheme(
       pageBackgroundStart: pageBackgroundStart ?? this.pageBackgroundStart,
@@ -263,6 +323,20 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
       surfaceBorder: surfaceBorder ?? this.surfaceBorder,
       surfaceShadow: surfaceShadow ?? this.surfaceShadow,
       subtleText: subtleText ?? this.subtleText,
+      cardBorder: cardBorder ?? this.cardBorder,
+      cardShadow: cardShadow ?? this.cardShadow,
+      cardBackBackgroundStart:
+          cardBackBackgroundStart ?? this.cardBackBackgroundStart,
+      cardBackBackgroundEnd:
+          cardBackBackgroundEnd ?? this.cardBackBackgroundEnd,
+      cardBackBorder: cardBackBorder ?? this.cardBackBorder,
+      cardBackAccent: cardBackAccent ?? this.cardBackAccent,
+      cardTextPrimary: cardTextPrimary ?? this.cardTextPrimary,
+      cardTextSecondary: cardTextSecondary ?? this.cardTextSecondary,
+      rarityCommon: rarityCommon ?? this.rarityCommon,
+      rarityRare: rarityRare ?? this.rarityRare,
+      rarityEpic: rarityEpic ?? this.rarityEpic,
+      rarityLegendary: rarityLegendary ?? this.rarityLegendary,
     );
   }
 
@@ -295,6 +369,35 @@ class AppBrandTheme extends ThemeExtension<AppBrandTheme> {
       surfaceShadow:
           Color.lerp(surfaceShadow, other.surfaceShadow, t) ?? surfaceShadow,
       subtleText: Color.lerp(subtleText, other.subtleText, t) ?? subtleText,
+      cardBorder: Color.lerp(cardBorder, other.cardBorder, t) ?? cardBorder,
+      cardShadow: Color.lerp(cardShadow, other.cardShadow, t) ?? cardShadow,
+      cardBackBackgroundStart:
+          Color.lerp(
+            cardBackBackgroundStart,
+            other.cardBackBackgroundStart,
+            t,
+          ) ??
+          cardBackBackgroundStart,
+      cardBackBackgroundEnd:
+          Color.lerp(cardBackBackgroundEnd, other.cardBackBackgroundEnd, t) ??
+          cardBackBackgroundEnd,
+      cardBackBorder:
+          Color.lerp(cardBackBorder, other.cardBackBorder, t) ?? cardBackBorder,
+      cardBackAccent:
+          Color.lerp(cardBackAccent, other.cardBackAccent, t) ?? cardBackAccent,
+      cardTextPrimary:
+          Color.lerp(cardTextPrimary, other.cardTextPrimary, t) ??
+          cardTextPrimary,
+      cardTextSecondary:
+          Color.lerp(cardTextSecondary, other.cardTextSecondary, t) ??
+          cardTextSecondary,
+      rarityCommon:
+          Color.lerp(rarityCommon, other.rarityCommon, t) ?? rarityCommon,
+      rarityRare: Color.lerp(rarityRare, other.rarityRare, t) ?? rarityRare,
+      rarityEpic: Color.lerp(rarityEpic, other.rarityEpic, t) ?? rarityEpic,
+      rarityLegendary:
+          Color.lerp(rarityLegendary, other.rarityLegendary, t) ??
+          rarityLegendary,
     );
   }
 }

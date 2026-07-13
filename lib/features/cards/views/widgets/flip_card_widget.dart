@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../models/card_model.dart';
 
 class FlipCardWidget extends StatefulWidget {
@@ -70,28 +71,36 @@ class _FlipCardWidgetState extends State<FlipCardWidget>
   }
 
   Widget _buildCardBack() {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return AspectRatio(
       aspectRatio: 0.71,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.blueGrey.shade900,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.amber, width: 4),
-          boxShadow: const [
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              brand.cardBackBackgroundStart,
+              brand.cardBackBackgroundEnd,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: brand.cardBackBorder, width: 3.5),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black26,
+              color: brand.cardShadow,
               blurRadius: 8,
-              offset: Offset(2, 4),
+              offset: const Offset(2, 4),
             ),
           ],
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'CARDX',
-            style: TextStyle(
-              color: Colors.amber,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: brand.cardBackAccent,
               letterSpacing: 4,
             ),
           ),

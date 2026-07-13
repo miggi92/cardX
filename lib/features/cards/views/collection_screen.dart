@@ -50,16 +50,18 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     }
   }
 
-  Color getRarityColor(CardRarity rarity) {
+  Color getRarityColor(BuildContext context, CardRarity rarity) {
+    final brand = Theme.of(context).extension<AppBrandTheme>()!;
+
     switch (rarity) {
       case CardRarity.legendary:
-        return Colors.orange;
+        return brand.rarityLegendary;
       case CardRarity.epic:
-        return Colors.purple;
+        return brand.rarityEpic;
       case CardRarity.rare:
-        return Colors.blue;
+        return brand.rarityRare;
       case CardRarity.common:
-        return Colors.grey;
+        return brand.rarityCommon;
     }
   }
 
@@ -165,7 +167,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 height: 12,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: getRarityColor(card.rarity),
+                                  color: getRarityColor(context, card.rarity),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -308,19 +310,22 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: getRarityColor(rarity),
+        color: getRarityColor(context, rarity),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: brand.surfaceBackground, width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2)),
+        boxShadow: [
+          BoxShadow(
+            color: brand.cardShadow,
+            blurRadius: 2,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Text(
         'x$count',
-        style: const TextStyle(
-          color: Colors.white,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: brand.cardTextPrimary,
           fontSize: 12,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../models/card_model.dart';
 import '../../models/card_rarity.dart';
 
@@ -7,33 +8,38 @@ class CardWidget extends StatelessWidget {
 
   const CardWidget({super.key, required this.card});
 
-  Color _getRarityColor() {
+  Color _getRarityColor(BuildContext context) {
+    final brand = Theme.of(context).extension<AppBrandTheme>()!;
+
     switch (card.rarity) {
       case CardRarity.common:
-        return Colors.grey.shade400;
+        return brand.rarityCommon;
       case CardRarity.rare:
-        return Colors.blue.shade400;
+        return brand.rarityRare;
       case CardRarity.epic:
-        return Colors.purple.shade500;
+        return brand.rarityEpic;
       case CardRarity.legendary:
-        return Colors.orange.shade500;
+        return brand.rarityLegendary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
     return AspectRatio(
       aspectRatio: 0.71,
       child: Container(
         decoration: BoxDecoration(
-          color: _getRarityColor(),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white, width: 4),
-          boxShadow: const [
+          color: _getRarityColor(context),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: brand.cardBorder, width: 3.5),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black26,
+              color: brand.cardShadow,
               blurRadius: 8,
-              offset: Offset(2, 4),
+              offset: const Offset(2, 4),
             ),
           ],
         ),
@@ -49,7 +55,7 @@ class CardWidget extends StatelessWidget {
                     width: 35,
                     height: 35,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: brand.cardTextPrimary.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(4),
@@ -57,9 +63,9 @@ class CardWidget extends StatelessWidget {
                       card.teamLogoUrl,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
+                        return Icon(
                           Icons.shield,
-                          color: Colors.white70,
+                          color: brand.cardTextSecondary,
                           size: 20,
                         );
                       },
@@ -67,10 +73,8 @@ class CardWidget extends StatelessWidget {
                   ),
                   Text(
                     card.position,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: brand.cardTextSecondary,
                     ),
                   ),
                 ],
@@ -81,9 +85,9 @@ class CardWidget extends StatelessWidget {
                     card.playerImageUrl,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
+                      return Icon(
                         Icons.person,
-                        color: Colors.white70,
+                        color: brand.cardTextSecondary,
                         size: 250,
                       );
                     },
@@ -93,10 +97,8 @@ class CardWidget extends StatelessWidget {
               Center(
                 child: Text(
                   card.playerName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: brand.cardTextPrimary,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -108,10 +110,9 @@ class CardWidget extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2.0),
                   child: Text(
                     card.teamName,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: brand.cardTextSecondary,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -119,8 +120,11 @@ class CardWidget extends StatelessWidget {
                   ),
                 ),
               ),
-              const Divider(color: Colors.white54, thickness: 1),
-              _buildStatsGrid(),
+              Divider(
+                color: brand.cardTextSecondary.withValues(alpha: 0.45),
+                thickness: 1,
+              ),
+              _buildStatsGrid(theme, brand),
             ],
           ),
         ),
@@ -128,22 +132,27 @@ class CardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(ThemeData theme, AppBrandTheme brand) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatRow('Goals', card.stats.goals),
-            _buildStatRow('Games', card.stats.games),
+            _buildStatRow(theme, brand, 'Goals', card.stats.goals),
+            _buildStatRow(theme, brand, 'Games', card.stats.games),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildStatRow(String label, int value) {
+  Widget _buildStatRow(
+    ThemeData theme,
+    AppBrandTheme brand,
+    String label,
+    int value,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
@@ -152,16 +161,17 @@ class CardWidget extends StatelessWidget {
             width: 30,
             child: Text(
               value.toString(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: brand.cardTextPrimary,
                 fontSize: 14,
               ),
             ),
           ),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: brand.cardTextSecondary,
+            ),
           ),
         ],
       ),
