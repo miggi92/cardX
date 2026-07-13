@@ -351,7 +351,7 @@ class ShopScreen extends ConsumerWidget {
                       width: 180,
                       height: 180,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.transparent,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.58),
