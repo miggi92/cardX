@@ -19,7 +19,9 @@ class SupabaseShopRepository {
   final SupabaseStorageImageResolver _imageResolver;
 
   Future<List<PackModel>> getAvailablePacks() async {
-    final response = await _supabase.from('packs').select();
+    final response = await _supabase
+        .from('packs')
+        .select('id, name, price, type, filter_value, gradient_colors');
     final clubPacks = response
         .where((json) => json['type'] == PackType.club.name)
         .toList();
@@ -77,22 +79,27 @@ class SupabaseShopRepository {
     PackType type,
     String filterValue,
   ) async {
+    const playerPoolSelect =
+        'id, name, position, sport, goals, games, clubs!inner(id, name)';
+
     if (type == PackType.club) {
       return await _supabase
           .from('player_pool')
-          .select('*, clubs!inner(*)')
+          .select(playerPoolSelect)
           .eq('clubs.name', filterValue);
     }
 
     final String column = type == PackType.sport ? 'sport' : 'league';
     return await _supabase
         .from('player_pool')
-        .select('*, clubs(*)')
+        .select(playerPoolSelect)
         .eq(column, filterValue);
   }
 
   Future<List<Map<String, dynamic>>> getAllPlayers() async {
-    return await _supabase.from('player_pool').select('*, clubs(*)');
+    return await _supabase
+        .from('player_pool')
+        .select('id, name, position, sport, goals, games, clubs(id, name)');
   }
 
   Future<List<CardModel>> generateRandomCardsFromFilteredPool(
@@ -126,27 +133,32 @@ class SupabaseShopRepository {
     final clubLogoById = <String, String>{};
     final playerImageById = <String, String>{};
 
-    for (final player in availablePlayers) {
-      final club = player['clubs'] as Map<String, dynamic>;
-      final clubId = '${club['id']}';
-      final playerId = '${player['id']}';
+    final clubIds = availablePlayers
+        .map((player) => '${(player['clubs'] as Map<String, dynamic>)['id']}')
+        .toSet();
+    final playerIds = availablePlayers
+        .map((player) => '${player['id']}')
+        .toSet();
 
-      if (!clubLogoById.containsKey(clubId)) {
+    await Future.wait(
+      clubIds.map((clubId) async {
         clubLogoById[clubId] = await _imageResolver.resolveImageUrl(
           bucketName: 'club-logos',
           objectId: clubId,
           isPublic: true,
         );
-      }
+      }),
+    );
 
-      if (!playerImageById.containsKey(playerId)) {
+    await Future.wait(
+      playerIds.map((playerId) async {
         playerImageById[playerId] = await _imageResolver.resolveImageUrl(
           bucketName: 'player-images',
           objectId: playerId,
           isPublic: false,
         );
-      }
-    }
+      }),
+    );
 
     final random = Random();
     final pulledCards = <CardModel>[];

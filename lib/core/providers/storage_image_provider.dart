@@ -78,6 +78,8 @@ class SupabaseStorageImageResolver {
       }
     }
 
+    // Cache misses as empty strings to avoid repeated expensive lookups.
+    _resolvedImageUrlCache[cacheKey] = '';
     return '';
   }
 

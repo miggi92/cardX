@@ -18,24 +18,49 @@ class SupabaseCollectionRepository {
 
     final response = await _supabase
         .from('user_cards')
-        .select('*, player_pool(*, clubs(*))')
+        .select(
+          'rarity, player_pool(id, name, position, goals, games, sport, clubs(id, name))',
+        )
         .eq('user_id', userId);
+
+    final clubIds = response
+        .map((json) => json['player_pool']?['clubs']?['id'])
+        .where((id) => id != null)
+        .map((id) => '$id')
+        .toSet();
+    final playerIds = response
+        .map((json) => json['player_pool']?['id'])
+        .where((id) => id != null)
+        .map((id) => '$id')
+        .toSet();
+
+    final clubLogoById = <String, String>{};
+    final playerImageById = <String, String>{};
+
+    await Future.wait(
+      clubIds.map((clubId) async {
+        clubLogoById[clubId] = await _imageResolver.resolveImageUrl(
+          bucketName: 'club-logos',
+          objectId: clubId,
+          isPublic: true,
+        );
+      }),
+    );
+
+    await Future.wait(
+      playerIds.map((playerId) async {
+        playerImageById[playerId] = await _imageResolver.resolveImageUrl(
+          bucketName: 'player-images',
+          objectId: playerId,
+          isPublic: false,
+        );
+      }),
+    );
 
     final cards = <CardModel>[];
     for (final json in response) {
       final player = json['player_pool'];
       final club = player['clubs'];
-
-      final logoUrl = await _imageResolver.resolveImageUrl(
-        bucketName: 'club-logos',
-        objectId: '${club['id']}',
-        isPublic: true,
-      );
-      final playerImageUrl = await _imageResolver.resolveImageUrl(
-        bucketName: 'player-logo',
-        objectId: '${player['id']}',
-        isPublic: false,
-      );
 
       final logicalCardId = '${player['id']}_${json['rarity']}';
 
@@ -45,8 +70,8 @@ class SupabaseCollectionRepository {
           playerName: player['name'],
           position: player['position'],
           teamName: club['name'],
-          teamLogoUrl: logoUrl,
-          playerImageUrl: playerImageUrl,
+          teamLogoUrl: clubLogoById['${club['id']}'] ?? '',
+          playerImageUrl: playerImageById['${player['id']}'] ?? '',
           rarity: CardRarity.values.byName(json['rarity']),
           stats: PlayerStats(goals: player['goals'], games: player['games']),
           sport: (player['sport'] as String?) ?? '',
