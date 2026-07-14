@@ -5,6 +5,7 @@ class CardModel {
   final String id;
   final String playerName;
   final String position;
+  final String league;
   final String teamName;
   final String teamLogoUrl;
   final String playerImageUrl;
@@ -16,6 +17,7 @@ class CardModel {
     required this.id,
     required this.playerName,
     required this.position,
+    this.league = '',
     required this.teamName,
     required this.teamLogoUrl,
     required this.playerImageUrl,
@@ -29,6 +31,7 @@ class CardModel {
       id: json['id'] as String,
       playerName: json['playerName'] as String,
       position: json['position'] as String,
+      league: (json['league'] as String?) ?? '',
       teamName: json['teamName'] as String,
       teamLogoUrl: json['teamLogoUrl'] as String,
       playerImageUrl: json['playerImageUrl'] as String,
@@ -43,6 +46,7 @@ class CardModel {
       'id': id,
       'playerName': playerName,
       'position': position,
+      'league': league,
       'teamName': teamName,
       'teamLogoUrl': teamLogoUrl,
       'playerImageUrl': playerImageUrl,

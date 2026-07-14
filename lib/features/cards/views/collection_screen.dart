@@ -469,24 +469,35 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       return matchesSearch && matchesRarity;
     }).toList();
 
-    // team -> sport -> playerName -> cards
-    final Map<String, Map<String, Map<String, List<CardModel>>>>
-    groupedByTeamSportPlayer = {};
+    // team -> sport -> league -> playerName -> cards
+    final Map<String, Map<String, Map<String, Map<String, List<CardModel>>>>>
+    groupedByTeamSportLeaguePlayer = {};
     for (final card in filteredCards) {
-      groupedByTeamSportPlayer.putIfAbsent(card.teamName, () => {});
-      groupedByTeamSportPlayer[card.teamName]!.putIfAbsent(
-        card.sport,
+      final sport = card.sport.trim().isEmpty
+          ? l10n.collectionGeneral
+          : card.sport;
+      final league = card.league.trim().isEmpty
+          ? l10n.collectionGeneral
+          : card.league;
+
+      groupedByTeamSportLeaguePlayer.putIfAbsent(card.teamName, () => {});
+      groupedByTeamSportLeaguePlayer[card.teamName]!.putIfAbsent(
+        sport,
         () => {},
       );
-      groupedByTeamSportPlayer[card.teamName]![card.sport]!.putIfAbsent(
-        card.playerName,
-        () => [],
+      groupedByTeamSportLeaguePlayer[card.teamName]![sport]!.putIfAbsent(
+        league,
+        () => {},
       );
-      groupedByTeamSportPlayer[card.teamName]![card.sport]![card.playerName]!
+      groupedByTeamSportLeaguePlayer[card.teamName]![sport]![league]!
+          .putIfAbsent(card.playerName, () => []);
+      groupedByTeamSportLeaguePlayer[card.teamName]![sport]![league]![card
+              .playerName]!
           .add(card);
     }
 
-    final sortedTeamNames = groupedByTeamSportPlayer.keys.toList()..sort();
+    final sortedTeamNames = groupedByTeamSportLeaguePlayer.keys.toList()
+      ..sort();
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.collectionTitle(myCards.length))),
@@ -568,21 +579,23 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     itemCount: sortedTeamNames.length,
                     itemBuilder: (context, index) {
                       final teamName = sortedTeamNames[index];
-                      final sportMap = groupedByTeamSportPlayer[teamName]!;
+                      final sportMap =
+                          groupedByTeamSportLeaguePlayer[teamName]!;
                       final sortedSports = sportMap.keys.toList()..sort();
                       final hasMultipleSports = sortedSports.length > 1;
 
-                      // Hole die Logo-URL dynamisch von der ersten Karte in dieser Vereins-Gruppe
-                      final String teamLogoUrl = sportMap[sortedSports.first]!
-                          .values
-                          .first
-                          .first
-                          .teamLogoUrl;
+                      // Hole die Logo-URL dynamisch von der ersten Karte in dieser Vereins-Gruppe.
+                      final firstLeagueMap = sportMap[sortedSports.first]!;
+                      final firstPlayerCards =
+                          firstLeagueMap.values.first.values.first;
+                      final String teamLogoUrl =
+                          firstPlayerCards.first.teamLogoUrl;
 
-                      final int totalPlayerCount = sportMap.values.fold(
-                        0,
-                        (sum, playersMap) => sum + playersMap.length,
-                      );
+                      final totalPlayerNames = <String>{};
+                      for (final leagueMap in sportMap.values) {
+                        totalPlayerNames.addAll(leagueMap.keys);
+                      }
+                      final int totalPlayerCount = totalPlayerNames.length;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,9 +656,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           ),
 
                           ...sortedSports.map((sport) {
-                            final playersMap = sportMap[sport]!;
-                            final sortedPlayerNames = playersMap.keys.toList()
+                            final leagueMap = sportMap[sport]!;
+                            final sortedLeagues = leagueMap.keys.toList()
                               ..sort();
+                            final hasMultipleLeagues = sortedLeagues.length > 1;
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -672,78 +686,123 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     ),
                                   ),
 
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final gridConfig = _gridConfigForWidth(
-                                      constraints.maxWidth,
-                                    );
+                                ...sortedLeagues.map((league) {
+                                  final playersMap = leagueMap[league]!;
+                                  final sortedPlayerNames =
+                                      playersMap.keys.toList()..sort();
 
-                                    return GridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount:
-                                                gridConfig.crossAxisCount,
-                                            crossAxisSpacing: 16,
-                                            mainAxisSpacing: 16,
-                                            childAspectRatio:
-                                                gridConfig.childAspectRatio,
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (hasMultipleLeagues)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                            top: 2,
                                           ),
-                                      itemCount: sortedPlayerNames.length,
-                                      itemBuilder: (context, playerIndex) {
-                                        final playerName =
-                                            sortedPlayerNames[playerIndex];
-                                        final cardsOfPlayer =
-                                            playersMap[playerName]!;
-
-                                        cardsOfPlayer.sort(
-                                          (a, b) => getRarityValue(
-                                            b.rarity,
-                                          ).compareTo(getRarityValue(a.rarity)),
-                                        );
-                                        final bestCard = cardsOfPlayer.first;
-
-                                        final Map<CardRarity, int>
-                                        rarityCounts = {};
-                                        for (final c in cardsOfPlayer) {
-                                          rarityCounts[c.rarity] =
-                                              (rarityCounts[c.rarity] ?? 0) + 1;
-                                        }
-
-                                        final bool hasAllRarities =
-                                            rarityCounts.length ==
-                                            CardRarity.values.length;
-
-                                        return GestureDetector(
-                                          onTap: () => showPlayerDetailsSheet(
-                                            playerName,
-                                            cardsOfPlayer,
+                                          child: Text(
+                                            league.toUpperCase(),
+                                            style: theme.textTheme.labelLarge
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                  letterSpacing: 1.0,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                           ),
-                                          child: Column(
-                                            children: [
-                                              Expanded(
-                                                child: Stack(
-                                                  fit: StackFit.expand,
-                                                  clipBehavior: Clip.none,
+                                        ),
+
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final gridConfig =
+                                              _gridConfigForWidth(
+                                                constraints.maxWidth,
+                                              );
+
+                                          return GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            gridDelegate:
+                                                SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount:
+                                                      gridConfig.crossAxisCount,
+                                                  crossAxisSpacing: 16,
+                                                  mainAxisSpacing: 16,
+                                                  childAspectRatio: gridConfig
+                                                      .childAspectRatio,
+                                                ),
+                                            itemCount: sortedPlayerNames.length,
+                                            itemBuilder: (context, playerIndex) {
+                                              final playerName =
+                                                  sortedPlayerNames[playerIndex];
+                                              final cardsOfPlayer =
+                                                  playersMap[playerName]!;
+
+                                              cardsOfPlayer.sort(
+                                                (a, b) =>
+                                                    getRarityValue(
+                                                      b.rarity,
+                                                    ).compareTo(
+                                                      getRarityValue(a.rarity),
+                                                    ),
+                                              );
+                                              final bestCard =
+                                                  cardsOfPlayer.first;
+
+                                              final Map<CardRarity, int>
+                                              rarityCounts = {};
+                                              for (final c in cardsOfPlayer) {
+                                                rarityCounts[c.rarity] =
+                                                    (rarityCounts[c.rarity] ??
+                                                        0) +
+                                                    1;
+                                              }
+
+                                              final bool hasAllRarities =
+                                                  rarityCounts.length ==
+                                                  CardRarity.values.length;
+
+                                              return GestureDetector(
+                                                onTap: () =>
+                                                    showPlayerDetailsSheet(
+                                                      playerName,
+                                                      cardsOfPlayer,
+                                                    ),
+                                                child: Column(
                                                   children: [
-                                                    CardWidget(card: bestCard),
+                                                    Expanded(
+                                                      child: Stack(
+                                                        fit: StackFit.expand,
+                                                        clipBehavior: Clip.none,
+                                                        children: [
+                                                          CardWidget(
+                                                            card: bestCard,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    buildRarityTrack(
+                                                      rarityCounts,
+                                                      hasAllRarities:
+                                                          hasAllRarities,
+                                                    ),
                                                   ],
                                                 ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              buildRarityTrack(
-                                                rarityCounts,
-                                                hasAllRarities: hasAllRarities,
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+
+                                      if (league != sortedLeagues.last)
+                                        const SizedBox(height: 14),
+                                    ],
+                                  );
+                                }),
 
                                 if (hasMultipleSports &&
                                     sport != sortedSports.last)

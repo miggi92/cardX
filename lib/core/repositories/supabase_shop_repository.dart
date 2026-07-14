@@ -77,7 +77,7 @@ class SupabaseShopRepository {
     String filterValue,
   ) async {
     const playerPoolSelect =
-        'id, name, position, sport, goals, games, clubs!inner(id, name)';
+        'id, name, position, league, sport, goals, games, clubs!inner(id, name)';
 
     if (type == PackType.club) {
       return await _supabase
@@ -96,7 +96,9 @@ class SupabaseShopRepository {
   Future<List<Map<String, dynamic>>> getAllPlayers() async {
     return await _supabase
         .from('player_pool')
-        .select('id, name, position, sport, goals, games, clubs(id, name)');
+        .select(
+          'id, name, position, league, sport, goals, games, clubs(id, name)',
+        );
   }
 
   Future<List<CardModel>> generateRandomCardsFromFilteredPool(
@@ -143,6 +145,7 @@ class SupabaseShopRepository {
             'id': row['player_id'],
             'name': row['player_name'],
             'position': row['player_position'],
+            'league': row['player_league'],
             'sport': row['player_sport'],
             'goals': row['player_goals'],
             'games': row['player_games'],
@@ -206,6 +209,7 @@ class SupabaseShopRepository {
           id: '${player['id']}_${rarity.name}',
           playerName: player['name'] as String,
           position: player['position'] as String,
+          league: (player['league'] as String?) ?? '',
           teamName: club['name'] as String,
           teamLogoUrl: clubLogoById['${club['id']}']!,
           playerImageUrl: playerImageById['${player['id']}']!,

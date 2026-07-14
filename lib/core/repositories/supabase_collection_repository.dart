@@ -19,7 +19,7 @@ class SupabaseCollectionRepository {
     final response = await _supabase
         .from('user_cards')
         .select(
-          'rarity, player_pool(id, name, position, goals, games, sport, clubs(id, name))',
+          'rarity, player_pool(id, name, position, league, goals, games, sport, clubs(id, name))',
         )
         .eq('user_id', userId);
 
@@ -69,6 +69,7 @@ class SupabaseCollectionRepository {
           id: logicalCardId,
           playerName: player['name'],
           position: player['position'],
+          league: (player['league'] as String?) ?? '',
           teamName: club['name'],
           teamLogoUrl: clubLogoById['${club['id']}'] ?? '',
           playerImageUrl: playerImageById['${player['id']}'] ?? '',
