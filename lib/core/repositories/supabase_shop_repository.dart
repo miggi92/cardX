@@ -1,17 +1,16 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../features/cards/models/card_model.dart';
-import '../../features/cards/models/card_rarity.dart';
-import '../../features/cards/models/player_stats.dart';
-import '../../features/shop/models/pack_model.dart';
+import 'package:cardx/features/cards/models/card_model.dart';
+import 'package:cardx/features/cards/models/card_rarity.dart';
+import 'package:cardx/features/cards/models/player_stats.dart';
+import 'package:cardx/features/shop/models/pack_model.dart';
 import 'package:flutter/material.dart';
-import '../providers/storage_image_provider.dart';
+import 'package:cardx/core/providers/storage_image_provider.dart';
 
 class SupabaseShopRepository {
   SupabaseShopRepository({
-    required SupabaseStorageImageResolver imageResolver,
+    required this._imageResolver,
     SupabaseClient? supabase,
-  }) : _imageResolver = imageResolver,
-       _supabase = supabase ?? Supabase.instance.client;
+  }) : _supabase = supabase ?? Supabase.instance.client;
 
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
