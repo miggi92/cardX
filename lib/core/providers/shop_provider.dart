@@ -3,8 +3,13 @@ import '../../core/constants/sport_utils.dart';
 import '../../../core/repositories/supabase_shop_repository.dart';
 import '../../features/cards/models/card_rarity.dart';
 import '../../features/shop/models/pack_model.dart';
+import 'storage_image_provider.dart';
 
-final shopRepoProvider = Provider((ref) => SupabaseShopRepository());
+final shopRepoProvider = Provider(
+  (ref) => SupabaseShopRepository(
+    imageResolver: ref.watch(storageImageResolverProvider),
+  ),
+);
 
 // Lädt die Packs asynchron aus Supabase
 final availablePacksProvider = FutureProvider<List<PackModel>>((ref) async {

@@ -6,12 +6,17 @@ import '../../features/cards/models/card_rarity.dart';
 import '../../features/cards/models/player_stats.dart';
 import '../../features/shop/models/pack_model.dart';
 import 'package:flutter/material.dart';
+import '../providers/storage_image_provider.dart';
 
 class SupabaseShopRepository {
-  final _supabase = Supabase.instance.client;
-  final Map<String, String> _resolvedImageUrlCache = {};
+  SupabaseShopRepository({
+    required SupabaseStorageImageResolver imageResolver,
+    SupabaseClient? supabase,
+  }) : _imageResolver = imageResolver,
+       _supabase = supabase ?? Supabase.instance.client;
 
-  static const _fallbackExtensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+  final SupabaseClient _supabase;
+  final SupabaseStorageImageResolver _imageResolver;
 
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase.from('packs').select();
@@ -37,9 +42,10 @@ class SupabaseShopRepository {
         final clubName = club['name'] as String?;
         final clubId = club['id'];
         if (clubName != null && clubId != null) {
-          clubLogoByName[clubName] = await _resolveImageUrl(
+          clubLogoByName[clubName] = await _imageResolver.resolveImageUrl(
             bucketName: 'club-logos',
             objectId: '$clubId',
+            isPublic: true,
           );
         }
       }
@@ -126,16 +132,18 @@ class SupabaseShopRepository {
       final playerId = '${player['id']}';
 
       if (!clubLogoById.containsKey(clubId)) {
-        clubLogoById[clubId] = await _resolveImageUrl(
+        clubLogoById[clubId] = await _imageResolver.resolveImageUrl(
           bucketName: 'club-logos',
           objectId: clubId,
+          isPublic: true,
         );
       }
 
       if (!playerImageById.containsKey(playerId)) {
-        playerImageById[playerId] = await _resolveImageUrl(
+        playerImageById[playerId] = await _imageResolver.resolveImageUrl(
           bucketName: 'player-images',
           objectId: playerId,
+          isPublic: false,
         );
       }
     }
@@ -167,113 +175,6 @@ class SupabaseShopRepository {
     }
 
     return pulledCards;
-  }
-
-  Future<String> _resolveImageUrl({
-    required String bucketName,
-    required String objectId,
-  }) async {
-    final cacheKey = '$bucketName/$objectId';
-    final cachedUrl = _resolvedImageUrlCache[cacheKey];
-    if (cachedUrl != null) {
-      return cachedUrl;
-    }
-
-    final storage = _supabase.storage.from(bucketName);
-
-    try {
-      final files = await storage.list(
-        searchOptions: SearchOptions(limit: 50, search: objectId),
-      );
-
-      final matchingFiles = files
-          .where((file) => _matchesObjectId(file.name, objectId))
-          .toList();
-
-      if (matchingFiles.isNotEmpty) {
-        final preferred = _pickBestImageCandidate(matchingFiles);
-        if (preferred != null) {
-          final mimeType = _mimeTypeOf(preferred);
-          var url = bucketName == 'club-logos'
-              ? storage.getPublicUrl(preferred.name)
-              : await storage.createSignedUrl(preferred.name, 60 * 60 * 24);
-          if (_isSvgMime(mimeType)) {
-            url = _tagWithSvgMime(url);
-          }
-          _resolvedImageUrlCache[cacheKey] = url;
-          return url;
-        }
-      }
-    } catch (_) {
-      // Fall back to extension probing below.
-    }
-
-    for (final extension in _fallbackExtensions) {
-      final path = '$objectId.$extension';
-      try {
-        if (await storage.exists(path)) {
-          var url = bucketName == 'club-logos'
-              ? storage.getPublicUrl(path)
-              : await storage.createSignedUrl(path, 60 * 60 * 24);
-          if (extension == 'svg') {
-            url = _tagWithSvgMime(url);
-          }
-          _resolvedImageUrlCache[cacheKey] = url;
-          return url;
-        }
-      } catch (_) {
-        // Fall through to next extension and keep a png fallback below.
-      }
-    }
-
-    final fallbackUrl = bucketName == 'club-logos'
-        ? storage.getPublicUrl('$objectId.png')
-        : await storage.createSignedUrl('$objectId.png', 60 * 60 * 24);
-    _resolvedImageUrlCache[cacheKey] = fallbackUrl;
-    return fallbackUrl;
-  }
-
-  bool _matchesObjectId(String fileName, String objectId) {
-    final normalizedFileName = fileName.toLowerCase();
-    final normalizedObjectId = objectId.toLowerCase();
-    return normalizedFileName == normalizedObjectId ||
-        normalizedFileName.startsWith('$normalizedObjectId.');
-  }
-
-  FileObject? _pickBestImageCandidate(List<FileObject> candidates) {
-    for (final file in candidates) {
-      final mimeType = _mimeTypeOf(file);
-      if (_isSupportedImageMime(mimeType)) {
-        return file;
-      }
-    }
-
-    for (final file in candidates) {
-      final lowerName = file.name.toLowerCase();
-      if (_fallbackExtensions.any((ext) => lowerName.endsWith('.$ext'))) {
-        return file;
-      }
-    }
-
-    return null;
-  }
-
-  String? _mimeTypeOf(FileObject file) {
-    final mime = file.metadata?['mimetype'];
-    return mime is String ? mime.toLowerCase() : null;
-  }
-
-  bool _isSupportedImageMime(String? mimeType) {
-    return mimeType != null && mimeType.startsWith('image/');
-  }
-
-  bool _isSvgMime(String? mimeType) {
-    return mimeType == 'image/svg+xml';
-  }
-
-  String _tagWithSvgMime(String url) {
-    final uri = Uri.parse(url);
-    return uri.replace(fragment: 'mime=image/svg+xml').toString();
   }
 
   CardRarity _rollRarity(Random random) {

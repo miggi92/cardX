@@ -2,9 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../features/cards/models/card_model.dart';
 import '../repositories/supabase_collection_repository.dart';
+import 'storage_image_provider.dart';
 
 final collectionRepoProvider = Provider(
-  (ref) => SupabaseCollectionRepository(),
+  (ref) => SupabaseCollectionRepository(
+    imageResolver: ref.watch(storageImageResolverProvider),
+  ),
 );
 
 class CollectionNotifier extends Notifier<List<CardModel>> {
