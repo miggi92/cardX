@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/cards/models/card_model.dart';
 import '../../features/cards/models/card_rarity.dart';
@@ -107,7 +105,7 @@ class SupabaseShopRepository {
     String filterValue, {
     int count = 10,
   }) async {
-    final filteredPool = await _getRandomPlayersFromRpc(
+    final filteredPool = await _getRandomCardsFromRpc(
       packType: type.name,
       filterValue: filterValue,
       count: count,
@@ -118,7 +116,7 @@ class SupabaseShopRepository {
   Future<List<CardModel>> generateRandomCardsFromAllPlayers({
     int count = 10,
   }) async {
-    final allPlayers = await _getRandomPlayersFromRpc(
+    final allPlayers = await _getRandomCardsFromRpc(
       packType: 'all',
       filterValue: null,
       count: count,
@@ -126,13 +124,13 @@ class SupabaseShopRepository {
     return await _buildCardsFromPool(allPlayers);
   }
 
-  Future<List<Map<String, dynamic>>> _getRandomPlayersFromRpc({
+  Future<List<Map<String, dynamic>>> _getRandomCardsFromRpc({
     required String packType,
     required String? filterValue,
     required int count,
   }) async {
     final response = await _supabase.rpc(
-      'pull_random_players',
+      'pull_random_cards',
       params: {
         'p_pack_type': packType,
         'p_filter_value': filterValue,
@@ -149,6 +147,7 @@ class SupabaseShopRepository {
             'sport': row['player_sport'],
             'goals': row['player_goals'],
             'games': row['player_games'],
+            'rarity': row['rarity'],
             'clubs': {'id': row['club_id'], 'name': row['club_name']},
           },
         )
@@ -197,12 +196,11 @@ class SupabaseShopRepository {
       }),
     );
 
-    final random = Random();
     final pulledCards = <CardModel>[];
 
     for (final player in availablePlayers) {
       final club = player['clubs'] as Map<String, dynamic>;
-      final rarity = _rollRarity(random);
+      final rarity = CardRarity.values.byName(player['rarity'] as String);
 
       pulledCards.add(
         CardModel(
@@ -223,21 +221,5 @@ class SupabaseShopRepository {
     }
 
     return pulledCards;
-  }
-
-  CardRarity _rollRarity(Random random) {
-    final roll = random.nextDouble();
-
-    if (roll < 0.05) {
-      return CardRarity.legendary;
-    }
-    if (roll < 0.20) {
-      return CardRarity.epic;
-    }
-    if (roll < 0.50) {
-      return CardRarity.rare;
-    }
-
-    return CardRarity.common;
   }
 }
