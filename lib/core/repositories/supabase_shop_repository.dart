@@ -107,21 +107,58 @@ class SupabaseShopRepository {
     String filterValue, {
     int count = 10,
   }) async {
-    final filteredPool = await getFilteredPlayerPool(type, filterValue);
-    return await _generateRandomCardsFromPool(filteredPool, count: count);
+    final filteredPool = await _getRandomPlayersFromRpc(
+      packType: type.name,
+      filterValue: filterValue,
+      count: count,
+    );
+    return await _buildCardsFromPool(filteredPool);
   }
 
   Future<List<CardModel>> generateRandomCardsFromAllPlayers({
     int count = 10,
   }) async {
-    final allPlayers = await getAllPlayers();
-    return await _generateRandomCardsFromPool(allPlayers, count: count);
+    final allPlayers = await _getRandomPlayersFromRpc(
+      packType: 'all',
+      filterValue: null,
+      count: count,
+    );
+    return await _buildCardsFromPool(allPlayers);
   }
 
-  Future<List<CardModel>> _generateRandomCardsFromPool(
-    List<Map<String, dynamic>> playerPool, {
+  Future<List<Map<String, dynamic>>> _getRandomPlayersFromRpc({
+    required String packType,
+    required String? filterValue,
     required int count,
   }) async {
+    final response = await _supabase.rpc(
+      'pull_random_players',
+      params: {
+        'p_pack_type': packType,
+        'p_filter_value': filterValue,
+        'p_count': count,
+      },
+    );
+
+    return (response as List)
+        .map(
+          (row) => {
+            'id': row['player_id'],
+            'name': row['player_name'],
+            'position': row['player_position'],
+            'sport': row['player_sport'],
+            'goals': row['player_goals'],
+            'games': row['player_games'],
+            'clubs': {'id': row['club_id'], 'name': row['club_name']},
+          },
+        )
+        .cast<Map<String, dynamic>>()
+        .toList();
+  }
+
+  Future<List<CardModel>> _buildCardsFromPool(
+    List<Map<String, dynamic>> playerPool,
+  ) async {
     final availablePlayers = playerPool
         .where((player) => player['clubs'] != null)
         .toList();
@@ -163,8 +200,7 @@ class SupabaseShopRepository {
     final random = Random();
     final pulledCards = <CardModel>[];
 
-    for (int i = 0; i < count; i++) {
-      final player = availablePlayers[random.nextInt(availablePlayers.length)];
+    for (final player in availablePlayers) {
       final club = player['clubs'] as Map<String, dynamic>;
       final rarity = _rollRarity(random);
 
