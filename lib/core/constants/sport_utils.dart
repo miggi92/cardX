@@ -7,7 +7,6 @@ String normalizeSportId(String rawSport) {
   }
 
   if (normalized == 'soccer' ||
-      normalized == 'football' ||
       normalized == 'fussball' ||
       normalized == 'fu\u00dfball') {
     return 'soccer';
