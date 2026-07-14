@@ -6,10 +6,9 @@ import '../providers/storage_image_provider.dart';
 
 class SupabaseCollectionRepository {
   SupabaseCollectionRepository({
-    required SupabaseStorageImageResolver imageResolver,
+    required this._imageResolver,
     SupabaseClient? supabase,
-  }) : _imageResolver = imageResolver,
-       _supabase = supabase ?? Supabase.instance.client;
+  }) : _supabase = supabase ?? Supabase.instance.client;
 
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
@@ -33,7 +32,7 @@ class SupabaseCollectionRepository {
         isPublic: true,
       );
       final playerImageUrl = await _imageResolver.resolveImageUrl(
-        bucketName: 'player-images',
+        bucketName: 'player-logo',
         objectId: '${player['id']}',
         isPublic: false,
       );
