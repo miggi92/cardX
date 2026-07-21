@@ -6,9 +6,9 @@ import '../providers/storage_image_provider.dart';
 
 class SupabaseCollectionRepository {
   SupabaseCollectionRepository({
-    required this._imageResolver,
+    required SupabaseStorageImageResolver imageResolver,
     SupabaseClient? supabase,
-  }) : _supabase = supabase ?? Supabase.instance.client;
+  }) : _supabase = supabase ?? Supabase.instance.client, _imageResolver = imageResolver;
 
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
