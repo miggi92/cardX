@@ -165,8 +165,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             : const Icon(Icons.delete_forever_outlined),
                         label: Text(
                           authState.isAccountDeletionLoading
-                              ? 'Konto wird geloescht...'
-                              : 'Konto loeschen',
+                              ? 'Konto wird gelöscht...'
+                              : 'Konto löschen',
                         ),
                       ),
                     ),
