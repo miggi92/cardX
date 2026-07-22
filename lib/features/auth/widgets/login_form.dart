@@ -73,12 +73,12 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             Text('Sign in with your email or a social provider.', style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
             const SizedBox(height: 24),
             TextFormField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
-              validator: (val) => (val == null || val.isEmpty || !val.contains('@')) ? 'Enter a valid email.' : null,
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
+            decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
+            validator: (val) => (val == null || val.isEmpty || !val.contains('@')) ? 'Enter a valid email.' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
