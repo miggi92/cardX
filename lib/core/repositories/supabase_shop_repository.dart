@@ -15,6 +15,24 @@ class SupabaseShopRepository {
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
 
+  PackType _parsePackType(String rawType) {
+    switch (rawType) {
+      case 'club':
+        return PackType.club;
+      case 'sport':
+        return PackType.sport;
+      case 'league':
+        return PackType.league;
+      case 'organization':
+        return PackType.organization;
+      case 'all':
+      case 'random':
+        return PackType.organization;
+      default:
+        return PackType.league;
+    }
+  }
+
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase
         .from('packs')
@@ -57,7 +75,7 @@ class SupabaseShopRepository {
         return Color(int.parse('FF$hexColor', radix: 16));
       }).toList();
 
-      final type = PackType.values.byName(json['type'] as String);
+      final type = _parsePackType(json['type'] as String);
       final filterValue = json['filter_value'] as String;
 
       return PackModel(
@@ -86,7 +104,15 @@ class SupabaseShopRepository {
           .eq('clubs.name', filterValue);
     }
 
-    final String column = type == PackType.sport ? 'sport' : 'league';
+    if (type == PackType.organization) {
+      return await getAllPlayers();
+    }
+
+    final String column = switch (type) {
+      PackType.sport => 'sport',
+      PackType.league => 'league',
+      _ => 'league',
+    };
     return await _supabase
         .from('player_pool')
         .select(playerPoolSelect)
@@ -106,6 +132,10 @@ class SupabaseShopRepository {
     String filterValue, {
     int count = 10,
   }) async {
+    if (type == PackType.organization) {
+      return await generateRandomCardsFromAllPlayers(count: count);
+    }
+
     final filteredPool = await _getRandomCardsFromRpc(
       packType: type.name,
       filterValue: filterValue,
