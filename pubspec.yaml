@@ -41,6 +41,7 @@ dependencies:
   supabase_flutter: ^2.16.0
   flutter_svg: ^2.2.1
   flutter_launcher_icons: ^0.14.4
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:
