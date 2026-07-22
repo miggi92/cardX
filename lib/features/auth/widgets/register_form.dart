@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cardx/core/theme/app_theme.dart';
 
-class RegisterForm extends StatefulWidget {
+import '../application/auth_controller.dart';
+
+class RegisterForm extends ConsumerStatefulWidget {
   final VoidCallback onToggleMode;
 
   const RegisterForm({super.key, required this.onToggleMode});
 
   @override
-  State<RegisterForm> createState() => _RegisterFormState();
+  ConsumerState<RegisterForm> createState() => _RegisterFormState();
 }
 
-class _RegisterFormState extends State<RegisterForm> {
+class _RegisterFormState extends ConsumerState<RegisterForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,9 +31,8 @@ class _RegisterFormState extends State<RegisterForm> {
   Future<void> _signUp() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      final response = await ref.read(authControllerProvider.notifier).signUpWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -46,16 +46,10 @@ class _RegisterFormState extends State<RegisterForm> {
       } else {
         TextInput.finishAutofillContext();
       }
-    } on AuthException catch (error) {
+    } on AuthFlowException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
       }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Registration failed: $error')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -63,6 +57,7 @@ class _RegisterFormState extends State<RegisterForm> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
+    final authState = ref.watch(authControllerProvider);
 
     return AutofillGroup(
       child: Form(
@@ -110,12 +105,18 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _isLoading ? null : _signUp,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Create account'),
+              onPressed: authState.isAnyLoading ? null : _signUp,
+              child: authState.isPasswordAuthLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.2),
+                    )
+                  : const Text('Create account'),
             ),
             const SizedBox(height: 14),
             TextButton(
-              onPressed: _isLoading ? null : widget.onToggleMode,
+              onPressed: authState.isAnyLoading ? null : widget.onToggleMode,
               child: const Text('Already have an account? Sign in'),
             ),
           ],

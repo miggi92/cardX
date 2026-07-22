@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cardx/core/theme/app_theme.dart';
-import 'login_form.dart';
-import 'register_form.dart';
+import '../widgets/login_form.dart';
+import '../widgets/register_form.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});

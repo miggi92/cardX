@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cardx/core/theme/app_theme.dart';
 
-class LoginForm extends StatefulWidget {
+import '../application/auth_controller.dart';
+import '../domain/auth_provider_type.dart';
+
+class LoginForm extends ConsumerStatefulWidget {
   final VoidCallback onToggleMode;
 
   const LoginForm({super.key, required this.onToggleMode});
 
   @override
-  State<LoginForm> createState() => _LoginFormState();
+  ConsumerState<LoginForm> createState() => _LoginFormState();
 }
 
-class _LoginFormState extends State<LoginForm> {
+class _LoginFormState extends ConsumerState<LoginForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -28,39 +30,26 @@ class _LoginFormState extends State<LoginForm> {
   Future<void> _signInWithEmail() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      await ref.read(authControllerProvider.notifier).signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       TextInput.finishAutofillContext();
-    } on AuthException catch (error) {
+    } on AuthFlowException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
       }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $error')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+  Future<void> _signInWithProvider(AuthProviderType provider) async {
     try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        // Optional: redirectTo: 'io.supabase.flutter://callback',
-      );
-    } catch (error) {
+      await ref.read(authControllerProvider.notifier).signInWithProvider(provider);
+    } on AuthFlowException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Google Sign-In failed: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -68,6 +57,7 @@ class _LoginFormState extends State<LoginForm> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
+    final authState = ref.watch(authControllerProvider);
 
     return AutofillGroup(
       child: Form(
@@ -80,7 +70,7 @@ class _LoginFormState extends State<LoginForm> {
             const SizedBox(height: 20),
             Text('Welcome back', style: theme.textTheme.headlineMedium, textAlign: TextAlign.center),
             const SizedBox(height: 10),
-            Text('Sign in with your email or Google.', style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
+            Text('Sign in with your email or a social provider.', style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
             const SizedBox(height: 24),
             TextFormField(
               controller: _emailController,
@@ -102,18 +92,35 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _isLoading ? null : _signInWithEmail,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Sign in'),
+              onPressed: authState.isAnyLoading ? null : _signInWithEmail,
+              child: authState.isPasswordAuthLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.2),
+                    )
+                  : const Text('Sign in'),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _isLoading ? null : _signInWithGoogle,
-              icon: const Icon(Icons.login), // Hier idealerweise ein Google SVG Asset einfügen
-              label: const Text('Continue with Google'),
+            ...supportedSocialAuthProviders.map(
+              (provider) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: OutlinedButton.icon(
+                  onPressed: authState.isAnyLoading ? null : () => _signInWithProvider(provider),
+                  icon: authState.loadingProvider == provider
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : Icon(provider.icon),
+                  label: Text(provider.label),
+                ),
+              ),
             ),
             const SizedBox(height: 14),
             TextButton(
-              onPressed: _isLoading ? null : widget.onToggleMode,
+              onPressed: authState.isAnyLoading ? null : widget.onToggleMode,
               child: const Text('Need an account? Register'),
             ),
           ],
