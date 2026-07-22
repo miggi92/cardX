@@ -8,4 +8,8 @@ abstract class AuthRepository {
   Future<AuthResponse> signUpWithEmail({required String email, required String password});
 
   Future<void> signInWithProvider(AuthProviderType provider);
+
+  Future<void> signOut();
+
+  Future<void> deleteAccount();
 }

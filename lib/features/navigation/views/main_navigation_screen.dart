@@ -1,5 +1,6 @@
 import 'package:cardx/features/cards/views/collection_screen.dart';
 import 'package:cardx/features/dashboard/views/dashboard_screen.dart';
+import 'package:cardx/features/profile/views/profile_screen.dart';
 import 'package:cardx/features/shop/views/shop_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
@@ -18,6 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const DashboardScreen(),
     const CollectionScreen(),
     const ShopScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -52,6 +54,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: const Icon(Icons.store_outlined),
             selectedIcon: const Icon(Icons.store),
             label: 'Shop',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),

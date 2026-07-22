@@ -15,21 +15,29 @@ class AuthControllerState {
   const AuthControllerState({
     this.isPasswordAuthLoading = false,
     this.loadingProvider,
+    this.isAccountDeletionLoading = false,
   });
 
   final bool isPasswordAuthLoading;
   final AuthProviderType? loadingProvider;
+  final bool isAccountDeletionLoading;
 
-  bool get isAnyLoading => isPasswordAuthLoading || loadingProvider != null;
+  bool get isAnyLoading =>
+      isPasswordAuthLoading ||
+      loadingProvider != null ||
+      isAccountDeletionLoading;
 
   AuthControllerState copyWith({
     bool? isPasswordAuthLoading,
     AuthProviderType? loadingProvider,
+    bool? isAccountDeletionLoading,
     bool clearProvider = false,
   }) {
     return AuthControllerState(
       isPasswordAuthLoading: isPasswordAuthLoading ?? this.isPasswordAuthLoading,
       loadingProvider: clearProvider ? null : (loadingProvider ?? this.loadingProvider),
+      isAccountDeletionLoading:
+          isAccountDeletionLoading ?? this.isAccountDeletionLoading,
     );
   }
 }
@@ -88,6 +96,33 @@ class AuthController extends Notifier<AuthControllerState> {
       throw AuthFlowException('${provider.label} failed. Please try again.');
     } finally {
       state = state.copyWith(clearProvider: true);
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      await _authRepository.signOut();
+    } on AuthException catch (error) {
+      throw AuthFlowException(error.message);
+    } catch (_) {
+      throw const AuthFlowException('Sign-out failed. Please try again.');
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    state = state.copyWith(isAccountDeletionLoading: true);
+    try {
+      await _authRepository.deleteAccount();
+    } on AuthException catch (error) {
+      throw AuthFlowException(error.message);
+    } on PostgrestException catch (error) {
+      throw AuthFlowException(error.message);
+    } catch (_) {
+      throw const AuthFlowException(
+        'Account deletion failed. Please try again.',
+      );
+    } finally {
+      state = state.copyWith(isAccountDeletionLoading: false);
     }
   }
 }

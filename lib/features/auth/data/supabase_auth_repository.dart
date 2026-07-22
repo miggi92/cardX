@@ -22,4 +22,15 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<void> signInWithProvider(AuthProviderType provider) {
     return _client.auth.signInWithOAuth(provider.oauthProvider);
   }
+
+  @override
+  Future<void> signOut() {
+    return _client.auth.signOut();
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await _client.rpc('delete_my_account');
+    await _client.auth.signOut();
+  }
 }
