@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,6 +47,63 @@ class SupabaseAdminRepository {
     }
 
     return AdminScope(isGlobalAdmin: isGlobalAdmin, clubs: clubs);
+  }
+
+  Future<List<Map<String, String>>> getAllClubs() async {
+    final response = await _supabase
+        .from('clubs')
+        .select('id, name')
+        .order('name');
+
+    return response
+        .map(
+          (row) => {'id': '${row['id']}', 'name': row['name'] as String? ?? ''},
+        )
+        .toList();
+  }
+
+  Future<String> submitAdminAccessRequest({
+    String? clubId,
+    String? requestedClubName,
+    String? message,
+  }) async {
+    final response = await _supabase.rpc(
+      'submit_admin_access_request',
+      params: {
+        'p_club_id': clubId,
+        'p_requested_club_name': requestedClubName,
+        'p_message': message,
+      },
+    );
+
+    return '$response';
+  }
+
+  Future<List<AdminAccessRequest>> getMyAdminAccessRequests() async {
+    final response = await _supabase.rpc('get_my_admin_access_requests');
+    return _mapRequests((response as List).cast<Map<String, dynamic>>());
+  }
+
+  Future<List<AdminAccessRequest>> getPendingAdminAccessRequests() async {
+    final response = await _supabase.rpc('get_pending_admin_access_requests');
+    return _mapRequests((response as List).cast<Map<String, dynamic>>());
+  }
+
+  Future<void> reviewAdminAccessRequest({
+    required String requestId,
+    required bool approve,
+    String? decisionNote,
+    bool createClubIfMissing = false,
+  }) async {
+    await _supabase.rpc(
+      'review_admin_access_request',
+      params: {
+        'p_request_id': requestId,
+        'p_approve': approve,
+        'p_decision_note': decisionNote,
+        'p_create_club_if_missing': createClubIfMissing,
+      },
+    );
   }
 
   Future<List<AdminPlayer>> getPlayersForClub({required String clubId}) async {
@@ -241,5 +299,29 @@ class SupabaseAdminRepository {
     }
 
     return (0, 0);
+  }
+
+  List<AdminAccessRequest> _mapRequests(List<Map<String, dynamic>> rows) {
+    return rows.map((row) {
+      final createdAt =
+          DateTime.tryParse('${row['created_at']}') ?? DateTime.now();
+      final reviewedAtRaw = row['reviewed_at'];
+
+      return AdminAccessRequest(
+        id: '${row['id']}',
+        requesterUserId: '${row['requester_user_id']}',
+        clubId: row['club_id'] == null ? null : '${row['club_id']}',
+        requestedClubName: row['requested_club_name'] as String? ?? '',
+        message: row['message'] as String?,
+        status: AdminAccessRequest.parseStatus('${row['status']}'),
+        reviewedBy: row['reviewed_by'] == null ? null : '${row['reviewed_by']}',
+        reviewedAt: reviewedAtRaw == null
+            ? null
+            : DateTime.tryParse('$reviewedAtRaw'),
+        decisionNote: row['decision_note'] as String?,
+        createdAt: createdAt,
+        clubName: row['club_name'] as String?,
+      );
+    }).toList();
   }
 }

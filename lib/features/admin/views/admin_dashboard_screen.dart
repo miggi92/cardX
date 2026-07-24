@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cardx/core/providers/admin_provider.dart';
+import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -107,6 +108,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(adminScopeProvider);
+        ref.invalidate(pendingAdminAccessRequestsProvider);
         if (_selectedClubId != null) {
           ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
         }
@@ -115,6 +117,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           _buildScopeCard(scope),
+          const SizedBox(height: 12),
+          _buildPendingRequestsSection(context, scope),
           const SizedBox(height: 12),
           _buildClubSelector(manageableClubs),
           const SizedBox(height: 12),
@@ -174,6 +178,114 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               _selectedClubId = value;
             });
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingRequestsSection(BuildContext context, AdminScope scope) {
+    final requestsAsync = ref.watch(pendingAdminAccessRequestsProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Admin-Anfragen',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vereinsadmins koennen nur Anfragen fuer bestehende Vereine genehmigen. '
+              'Anfragen fuer noch nicht angelegte Vereine kann nur der Super-Admin genehmigen und dabei den Verein erstellen.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            requestsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) =>
+                  Text('Anfragen konnten nicht geladen werden: $error'),
+              data: (requests) {
+                if (requests.isEmpty) {
+                  return const Text('Keine offenen Anfragen.');
+                }
+
+                return Column(
+                  children: requests
+                      .map(
+                        (request) {
+                          final canApproveMissingClub =
+                              !request.isForMissingClub || scope.isGlobalAdmin;
+
+                          return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  request.clubName ?? request.requestedClubName,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Anfragender User: ${request.requesterUserId}',
+                                ),
+                                if (request.message != null &&
+                                    request.message!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text('Nachricht: ${request.message!}'),
+                                ],
+                                if (request.isForMissingClub) ...[
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Verein existiert noch nicht. Nur Super-Admin kann mit Vereinsanlage genehmigen.',
+                                    style: TextStyle(color: Colors.orange),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: canApproveMissingClub
+                                          ? () => _reviewRequest(
+                                              scope: scope,
+                                              request: request,
+                                              approve: true,
+                                            )
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.check_circle_outline,
+                                      ),
+                                      label: const Text('Genehmigen'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _reviewRequest(
+                                        scope: scope,
+                                        request: request,
+                                        approve: false,
+                                      ),
+                                      icon: const Icon(Icons.cancel_outlined),
+                                      label: const Text('Ablehnen'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                        },
+                      )
+                      .toList(),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -514,6 +626,129 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _isSaving = false;
         });
       }
+    }
+  }
+
+  Future<void> _reviewRequest({
+    required AdminScope scope,
+    required AdminAccessRequest request,
+    required bool approve,
+  }) async {
+    final noteController = TextEditingController();
+    var createClubIfMissing = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(approve ? 'Anfrage genehmigen' : 'Anfrage ablehnen'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Verein: ${request.clubName ?? request.requestedClubName}',
+                  ),
+                  const SizedBox(height: 8),
+                  if (request.isForMissingClub)
+                    Text(
+                      scope.isGlobalAdmin
+                          ? 'Dieser Verein existiert noch nicht. Du kannst ihn beim Genehmigen direkt anlegen.'
+                          : 'Dieser Verein existiert noch nicht. Das darf nur ein Super-Admin genehmigen.',
+                      style: TextStyle(
+                        color: scope.isGlobalAdmin
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  if (approve &&
+                      request.isForMissingClub &&
+                      scope.isGlobalAdmin) ...[
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: createClubIfMissing,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          createClubIfMissing = value ?? false;
+                        });
+                      },
+                      title: const Text(
+                        'Verein bei Genehmigung automatisch anlegen',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Notiz (optional)',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Abbrechen'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text(approve ? 'Genehmigen' : 'Ablehnen'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      noteController.dispose();
+      return;
+    }
+
+    try {
+      await ref
+          .read(adminRepoProvider)
+          .reviewAdminAccessRequest(
+            requestId: request.id,
+            approve: approve,
+            decisionNote: noteController.text.trim(),
+            createClubIfMissing: createClubIfMissing,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      ref.invalidate(pendingAdminAccessRequestsProvider);
+      ref.invalidate(allClubsProvider);
+      ref.invalidate(adminScopeProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            approve ? 'Anfrage wurde genehmigt.' : 'Anfrage wurde abgelehnt.',
+          ),
+        ),
+      );
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Aktion fehlgeschlagen: ${error.message}')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Aktion fehlgeschlagen: $error')),
+        );
+      }
+    } finally {
+      noteController.dispose();
     }
   }
 
