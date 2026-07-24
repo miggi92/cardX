@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cardx/core/providers/admin_provider.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
+import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _createFormKey = GlobalKey<FormState>();
+  final _userSearchController = TextEditingController();
   final _nameController = TextEditingController();
   final _positionController = TextEditingController();
   final _leagueController = TextEditingController();
@@ -27,9 +29,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   String _selectedSport = 'soccer';
   String? _selectedClubId;
+  String? _selectedRoleUserId;
+  String? _selectedRoleUserEmail;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
   bool _isSaving = false;
+  bool _isRoleSaving = false;
+  bool _isUserSearching = false;
+  bool _roleCanCreatePlayers = true;
+  bool _roleCanEditPlayers = true;
+  List<AdminUserOption> _userSearchResults = const [];
 
   static String _defaultSeason() {
     final now = DateTime.now();
@@ -40,6 +49,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   @override
   void dispose() {
+    _userSearchController.dispose();
     _nameController.dispose();
     _positionController.dispose();
     _leagueController.dispose();
@@ -109,6 +119,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       onRefresh: () async {
         ref.invalidate(adminScopeProvider);
         ref.invalidate(pendingAdminAccessRequestsProvider);
+        ref.invalidate(clubAdminRoleAssignmentsProvider);
         if (_selectedClubId != null) {
           ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
         }
@@ -119,6 +130,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _buildScopeCard(scope),
           const SizedBox(height: 12),
           _buildPendingRequestsSection(context, scope),
+          if (scope.isGlobalAdmin) ...[
+            const SizedBox(height: 12),
+            _buildRoleManagementSection(context),
+          ],
           const SizedBox(height: 12),
           _buildClubSelector(manageableClubs),
           const SizedBox(height: 12),
@@ -213,73 +228,241 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 }
 
                 return Column(
-                  children: requests
-                      .map(
-                        (request) {
-                          final canApproveMissingClub =
-                              !request.isForMissingClub || scope.isGlobalAdmin;
+                  children: requests.map((request) {
+                    final canApproveMissingClub =
+                        !request.isForMissingClub || scope.isGlobalAdmin;
 
-                          return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              request.clubName ?? request.requestedClubName,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Anfragender User: ${request.requesterUserId}',
+                            ),
+                            if (request.message != null &&
+                                request.message!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text('Nachricht: ${request.message!}'),
+                            ],
+                            if (request.isForMissingClub) ...[
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Verein existiert noch nicht. Nur Super-Admin kann mit Vereinsanlage genehmigen.',
+                                style: TextStyle(color: Colors.orange),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
-                                Text(
-                                  request.clubName ?? request.requestedClubName,
-                                  style: Theme.of(context).textTheme.titleSmall,
+                                FilledButton.icon(
+                                  onPressed: canApproveMissingClub
+                                      ? () => _reviewRequest(
+                                          scope: scope,
+                                          request: request,
+                                          approve: true,
+                                        )
+                                      : null,
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  label: const Text('Genehmigen'),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Anfragender User: ${request.requesterUserId}',
-                                ),
-                                if (request.message != null &&
-                                    request.message!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text('Nachricht: ${request.message!}'),
-                                ],
-                                if (request.isForMissingClub) ...[
-                                  const SizedBox(height: 6),
-                                  const Text(
-                                    'Verein existiert noch nicht. Nur Super-Admin kann mit Vereinsanlage genehmigen.',
-                                    style: TextStyle(color: Colors.orange),
+                                OutlinedButton.icon(
+                                  onPressed: () => _reviewRequest(
+                                    scope: scope,
+                                    request: request,
+                                    approve: false,
                                   ),
-                                ],
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    FilledButton.icon(
-                                      onPressed: canApproveMissingClub
-                                          ? () => _reviewRequest(
-                                              scope: scope,
-                                              request: request,
-                                              approve: true,
-                                            )
-                                          : null,
-                                      icon: const Icon(
-                                        Icons.check_circle_outline,
-                                      ),
-                                      label: const Text('Genehmigen'),
-                                    ),
-                                    OutlinedButton.icon(
-                                      onPressed: () => _reviewRequest(
-                                        scope: scope,
-                                        request: request,
-                                        approve: false,
-                                      ),
-                                      icon: const Icon(Icons.cancel_outlined),
-                                      label: const Text('Ablehnen'),
-                                    ),
-                                  ],
+                                  icon: const Icon(Icons.cancel_outlined),
+                                  label: const Text('Ablehnen'),
                                 ),
                               ],
                             ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleManagementSection(BuildContext context) {
+    final selectedClubId = _selectedClubId;
+    final assignmentsAsync = ref.watch(clubAdminRoleAssignmentsProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Rollenverwaltung (Super-Admin)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vereinsadmins suchen und fuer den ausgewaehlten Verein zuweisen oder entfernen.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _userSearchController,
+              decoration: const InputDecoration(
+                labelText: 'User per E-Mail suchen',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: _isUserSearching ? null : _searchUsersForRole,
+                  icon: _isUserSearching
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.person_search_outlined),
+                  label: const Text('User suchen'),
+                ),
+                const SizedBox(width: 8),
+                if (_selectedRoleUserEmail != null)
+                  Expanded(
+                    child: Text(
+                      'Ausgewaehlt: $_selectedRoleUserEmail',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+            if (_userSearchResults.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 160,
+                child: ListView.builder(
+                  itemCount: _userSearchResults.length,
+                  itemBuilder: (context, index) {
+                    final user = _userSearchResults[index];
+                    final isSelected = _selectedRoleUserId == user.userId;
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        isSelected ? Icons.check_circle : Icons.person_outline,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      title: Text(user.email),
+                      subtitle: Text(user.userId),
+                      onTap: () {
+                        setState(() {
+                          _selectedRoleUserId = user.userId;
+                          _selectedRoleUserEmail = user.email;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Darf erstellen'),
+                  selected: _roleCanCreatePlayers,
+                  onSelected: (value) {
+                    setState(() {
+                      _roleCanCreatePlayers = value;
+                    });
+                  },
+                ),
+                FilterChip(
+                  label: const Text('Darf bearbeiten'),
+                  selected: _roleCanEditPlayers,
+                  onSelected: (value) {
+                    setState(() {
+                      _roleCanEditPlayers = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _isRoleSaving ? null : _assignClubAdminRole,
+                icon: _isRoleSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.admin_panel_settings_outlined),
+                label: const Text('Vereinsadmin zuweisen/aktualisieren'),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Bestehende Zuweisungen',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            assignmentsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) =>
+                  Text('Rollen konnten nicht geladen werden: $error'),
+              data: (assignments) {
+                final scoped = selectedClubId == null
+                    ? assignments
+                    : assignments
+                          .where(
+                            (assignment) => assignment.clubId == selectedClubId,
+                          )
+                          .toList();
+
+                if (scoped.isEmpty) {
+                  return const Text(
+                    'Keine Rollen fuer den aktuell ausgewaehlten Verein vorhanden.',
+                  );
+                }
+
+                return Column(
+                  children: scoped
+                      .map(
+                        (assignment) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(assignment.email ?? assignment.userId),
+                          subtitle: Text(
+                            '${assignment.clubName}\ncreate=${assignment.canCreatePlayers} edit=${assignment.canEditPlayers}',
                           ),
-                        );
-                        },
+                          isThreeLine: true,
+                          trailing: IconButton(
+                            onPressed: () => _removeClubAdminRole(assignment),
+                            icon: const Icon(Icons.remove_circle_outline),
+                            tooltip: 'Rolle entziehen',
+                          ),
+                        ),
                       )
                       .toList(),
                 );
@@ -625,6 +808,167 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         setState(() {
           _isSaving = false;
         });
+      }
+    }
+  }
+
+  Future<void> _searchUsersForRole() async {
+    setState(() {
+      _isUserSearching = true;
+    });
+
+    try {
+      final users = await ref
+          .read(adminRepoProvider)
+          .searchUsersForAdmin(_userSearchController.text.trim());
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _userSearchResults = users;
+      });
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User-Suche fehlgeschlagen: ${error.message}'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User-Suche fehlgeschlagen: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUserSearching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _assignClubAdminRole() async {
+    final clubId = _selectedClubId;
+    final userId = _selectedRoleUserId;
+
+    if (clubId == null || userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte Verein und User fuer die Rolle auswaehlen.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isRoleSaving = true;
+    });
+
+    try {
+      await ref
+          .read(adminRepoProvider)
+          .upsertClubAdminRole(
+            userId: userId,
+            clubId: clubId,
+            canCreatePlayers: _roleCanCreatePlayers,
+            canEditPlayers: _roleCanEditPlayers,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      ref.invalidate(clubAdminRoleAssignmentsProvider);
+      ref.invalidate(adminScopeProvider);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Rolle gespeichert.')));
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Rolle konnte nicht gespeichert werden: ${error.message}',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Rolle konnte nicht gespeichert werden: $error'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRoleSaving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _removeClubAdminRole(ClubAdminRoleAssignment assignment) async {
+    final shouldRemove = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rolle entziehen?'),
+        content: Text(
+          'Soll ${assignment.email ?? assignment.userId} als Vereinsadmin fuer ${assignment.clubName} entfernt werden?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Entziehen'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldRemove != true || !mounted) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(adminRepoProvider)
+          .removeClubAdminRole(
+            userId: assignment.userId,
+            clubId: assignment.clubId,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      ref.invalidate(clubAdminRoleAssignmentsProvider);
+      ref.invalidate(adminScopeProvider);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Rolle entzogen.')));
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Entziehen fehlgeschlagen: ${error.message}')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Entziehen fehlgeschlagen: $error')),
+        );
       }
     }
   }

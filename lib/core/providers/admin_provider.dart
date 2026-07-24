@@ -1,6 +1,7 @@
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/core/repositories/supabase_admin_repository.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
+import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,4 +42,9 @@ final myAdminAccessRequestsProvider = FutureProvider<List<AdminAccessRequest>>((
 final pendingAdminAccessRequestsProvider =
     FutureProvider<List<AdminAccessRequest>>((ref) async {
       return ref.watch(adminRepoProvider).getPendingAdminAccessRequests();
+    });
+
+final clubAdminRoleAssignmentsProvider =
+    FutureProvider<List<ClubAdminRoleAssignment>>((ref) async {
+      return ref.watch(adminRepoProvider).listClubAdminRoles();
     });

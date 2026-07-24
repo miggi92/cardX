@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cardx/features/admin/models/admin_access_request.dart';
+import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -103,6 +104,71 @@ class SupabaseAdminRepository {
         'p_decision_note': decisionNote,
         'p_create_club_if_missing': createClubIfMissing,
       },
+    );
+  }
+
+  Future<List<AdminUserOption>> searchUsersForAdmin(
+    String query, {
+    int limit = 20,
+  }) async {
+    final response = await _supabase.rpc(
+      'list_users_for_admin',
+      params: {'p_search': query, 'p_limit': limit},
+    );
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => AdminUserOption(
+            userId: '${row['user_id']}',
+            email: row['email'] as String? ?? '(ohne E-Mail)',
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<ClubAdminRoleAssignment>> listClubAdminRoles() async {
+    final response = await _supabase.rpc('list_club_admin_roles');
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => ClubAdminRoleAssignment(
+            userId: '${row['user_id']}',
+            email: row['email'] as String?,
+            clubId: '${row['club_id']}',
+            clubName: row['club_name'] as String? ?? '',
+            canCreatePlayers: row['can_create_players'] == true,
+            canEditPlayers: row['can_edit_players'] == true,
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> upsertClubAdminRole({
+    required String userId,
+    required String clubId,
+    required bool canCreatePlayers,
+    required bool canEditPlayers,
+  }) async {
+    await _supabase.rpc(
+      'upsert_club_admin_role',
+      params: {
+        'p_user_id': userId,
+        'p_club_id': clubId,
+        'p_can_create_players': canCreatePlayers,
+        'p_can_edit_players': canEditPlayers,
+      },
+    );
+  }
+
+  Future<void> removeClubAdminRole({
+    required String userId,
+    required String clubId,
+  }) async {
+    await _supabase.rpc(
+      'remove_club_admin_role',
+      params: {'p_user_id': userId, 'p_club_id': clubId},
     );
   }
 
