@@ -203,35 +203,52 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   Widget _buildClubSelector(List<AdminClubPermission> clubs) {
     final selectedClubId = _selectedClubId;
+    AdminClubPermission? selectedClub;
+    if (selectedClubId != null) {
+      for (final club in clubs) {
+        if (club.clubId == selectedClubId) {
+          selectedClub = club;
+          break;
+        }
+      }
+    }
     final imageResolver = ref.watch(storageImageResolverProvider);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: DropdownButtonFormField<String>(
-          initialValue: _selectedClubId,
-          decoration: const InputDecoration(
-            labelText: 'Verein',
-            prefixIcon: Icon(Icons.shield_outlined),
-          ),
-          items: clubs
-              .map(
-                (club) => DropdownMenuItem<String>(
-                  value: club.clubId,
-                  child: Text(club.clubName),
-                ),
-              )
-              .toList(),
-          selectedItemBuilder: (context) {
-            return clubs.map((club) {
-              if (club.clubId != selectedClubId) {
-                return Text(club.clubName, overflow: TextOverflow.ellipsis);
-              }
-
-              return FutureBuilder<String>(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _selectedClubId,
+              decoration: const InputDecoration(
+                labelText: 'Verein',
+                prefixIcon: Icon(Icons.shield_outlined),
+              ),
+              items: clubs
+                  .map(
+                    (club) => DropdownMenuItem<String>(
+                      value: club.clubId,
+                      child: Text(club.clubName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedClubId = value;
+                });
+              },
+            ),
+            if (selectedClub case final clubForPreview?) ...[
+              const SizedBox(height: 10),
+              FutureBuilder<String>(
                 future: imageResolver.resolveImageUrl(
                   bucketName: 'club-logos',
-                  objectId: club.clubId,
+                  objectId: clubForPreview.clubId,
                   isPublic: true,
                 ),
                 builder: (context, snapshot) {
@@ -249,24 +266,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ),
                       Expanded(
                         child: Text(
-                          club.clubName,
+                          clubForPreview.clubName,
                           overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ),
                     ],
                   );
                 },
-              );
-            }).toList();
-          },
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            setState(() {
-              _selectedClubId = value;
-            });
-          },
+              ),
+            ],
+          ],
         ),
       ),
     );

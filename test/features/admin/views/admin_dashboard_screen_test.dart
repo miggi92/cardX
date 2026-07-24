@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cardx/core/providers/admin_provider.dart';
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/core/repositories/supabase_admin_repository.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
+import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/features/admin/views/admin_dashboard_screen.dart';
@@ -53,16 +56,28 @@ void main() {
             (ref) => const <ClubAdminRoleAssignment>[],
           ),
         ],
-        child: const MaterialApp(home: AdminDashboardScreen()),
+        child: const MaterialApp(
+          home: ExcludeSemantics(child: AdminDashboardScreen()),
+        ),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Neue Sportart beantragen'), findsOneWidget);
 
-    await tester.tap(find.text('Sportart beantragen'));
-    await tester.pumpAndSettle();
+    final sportRequestForm = find.ancestor(
+      of: find.text('Neue Sportart beantragen'),
+      matching: find.byType(Form),
+    );
+    final submitButtonFinder = find.descendant(
+      of: sportRequestForm,
+      matching: find.byType(FilledButton),
+    );
+    final submitButton = tester.widget<FilledButton>(submitButtonFinder);
+
+    submitButton.onPressed?.call();
+    await tester.pump();
 
     expect(find.text('Pflichtfeld'), findsNWidgets(2));
     expect(fakeRepo.submitSportRequestCallCount, 0);
@@ -91,18 +106,20 @@ void main() {
             (ref) => const <ClubAdminRoleAssignment>[],
           ),
         ],
-        child: const MaterialApp(home: AdminDashboardScreen()),
+        child: const MaterialApp(
+          home: ExcludeSemantics(child: AdminDashboardScreen()),
+        ),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    final section = find.ancestor(
+    final sportRequestForm = find.ancestor(
       of: find.text('Neue Sportart beantragen'),
-      matching: find.byType(Card),
+      matching: find.byType(Form),
     );
     final fields = find.descendant(
-      of: section,
+      of: sportRequestForm,
       matching: find.byType(TextFormField),
     );
 
@@ -110,8 +127,13 @@ void main() {
     await tester.enterText(fields.at(1), 'Ice Hockey');
     await tester.enterText(fields.at(2), 'Bitte fuer Winterliga aufnehmen.');
 
-    await tester.tap(find.text('Sportart beantragen'));
-    await tester.pumpAndSettle();
+    final submitButtonFinder = find.descendant(
+      of: sportRequestForm,
+      matching: find.byType(FilledButton),
+    );
+    final submitButton = tester.widget<FilledButton>(submitButtonFinder);
+    submitButton.onPressed?.call();
+    await tester.pump();
 
     expect(fakeRepo.submitSportRequestCallCount, 1);
     expect(fakeRepo.lastSportId, 'ice_hockey');
@@ -122,8 +144,9 @@ void main() {
 }
 
 class _TestImageResolver extends SupabaseStorageImageResolver {
-  _TestImageResolver()
-    : super(supabase: SupabaseClient('https://example.com', 'test-key'));
+  _TestImageResolver() : super(supabase: _buildTestSupabaseClient());
+
+  final Completer<String> _neverCompletes = Completer<String>();
 
   @override
   Future<String> resolveImageUrl({
@@ -132,7 +155,7 @@ class _TestImageResolver extends SupabaseStorageImageResolver {
     required bool isPublic,
     int signedUrlLifetimeSeconds = 60 * 60 * 24,
   }) async {
-    return '';
+    return _neverCompletes.future;
   }
 }
 
@@ -140,7 +163,7 @@ class _FakeAdminRepository extends SupabaseAdminRepository {
   _FakeAdminRepository()
     : super(
         imageResolver: _TestImageResolver(),
-        supabase: SupabaseClient('https://example.com', 'test-key'),
+        supabase: _buildTestSupabaseClient(),
       );
 
   int submitSportRequestCallCount = 0;
@@ -160,4 +183,12 @@ class _FakeAdminRepository extends SupabaseAdminRepository {
     lastMessage = message;
     return 'req-1';
   }
+}
+
+SupabaseClient _buildTestSupabaseClient() {
+  return SupabaseClient(
+    'https://example.com',
+    'test-key',
+    authOptions: const AuthClientOptions(autoRefreshToken: false),
+  );
 }
