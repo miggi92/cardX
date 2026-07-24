@@ -230,7 +230,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
-              initialValue: _selectedClubId,
+              initialValue: clubs.any((c) => c.clubId == _selectedClubId)
+                  ? _selectedClubId
+                  : (clubs.isNotEmpty ? clubs.first.clubId : null),
               decoration: const InputDecoration(
                 labelText: 'Verein',
                 prefixIcon: Icon(Icons.shield_outlined),
@@ -799,8 +801,25 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         Text('Sportarten konnten nicht geladen werden: $error'),
                     data: (sports) {
                       final selectedSport = _selectedSport;
+                      final isSelectedValid = sports.any(
+                        (sport) => sport.id == selectedSport,
+                      );
+
+                      if (!isSelectedValid && sports.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedSport = sports.first.id;
+                          });
+                        });
+                      }
+
                       return DropdownButtonFormField<String>(
-                        initialValue: selectedSport,
+                        initialValue: isSelectedValid
+                            ? selectedSport
+                            : (sports.isNotEmpty ? sports.first.id : null),
                         decoration: const InputDecoration(
                           labelText: 'Sport',
                           prefixIcon: Icon(Icons.sports),
@@ -857,7 +876,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         return DropdownButtonFormField<String>(
                           initialValue: isSelectedValid
                               ? _selectedPosition
-                              : null,
+                              : (positions.isNotEmpty
+                                    ? positions.first.id
+                                    : null),
                           decoration: const InputDecoration(
                             labelText: 'Position',
                             prefixIcon: Icon(Icons.place_outlined),
@@ -916,7 +937,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         return DropdownButtonFormField<String>(
                           initialValue: isSelectedValid
                               ? _selectedLeague
-                              : null,
+                              : (leagues.isNotEmpty ? leagues.first.id : null),
                           decoration: const InputDecoration(
                             labelText: 'Liga',
                             prefixIcon: Icon(Icons.emoji_events_outlined),
@@ -1813,7 +1834,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        initialValue: selectedSport,
+                        initialValue: sports.any((s) => s.id == selectedSport)
+                            ? selectedSport
+                            : (sports.isNotEmpty ? sports.first.id : null),
                         decoration: const InputDecoration(labelText: 'Sport'),
                         items: sports
                             .map(
@@ -1868,7 +1891,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           }
 
                           return DropdownButtonFormField<String>(
-                            initialValue: selectedPosition,
+                            initialValue:
+                                positionsForSport.any(
+                                  (p) => p.id == selectedPosition,
+                                )
+                                ? selectedPosition
+                                : (positionsForSport.isNotEmpty
+                                      ? positionsForSport.first.id
+                                      : null),
                             decoration: const InputDecoration(
                               labelText: 'Position',
                             ),
@@ -1892,7 +1922,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        initialValue: selectedClubId,
+                        initialValue:
+                            scope.clubs.any((c) => c.clubId == selectedClubId)
+                            ? selectedClubId
+                            : null,
                         decoration: const InputDecoration(labelText: 'Verein'),
                         items: scope.clubs
                             .where(
@@ -1930,7 +1963,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           }
 
                           return DropdownButtonFormField<String>(
-                            initialValue: selectedLeague,
+                            initialValue:
+                                leaguesForSport.any(
+                                  (l) => l.id == selectedLeague,
+                                )
+                                ? selectedLeague
+                                : (leaguesForSport.isNotEmpty
+                                      ? leaguesForSport.first.id
+                                      : null),
                             decoration: const InputDecoration(
                               labelText: 'Liga',
                             ),
@@ -1954,7 +1994,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        initialValue: selectedSeason,
+                        initialValue: seasons.any((s) => s.id == selectedSeason)
+                            ? selectedSeason
+                            : (seasons.isNotEmpty ? seasons.first.id : null),
                         decoration: const InputDecoration(labelText: 'Saison'),
                         validator: (value) =>
                             value == null ? 'Pflichtfeld' : null,
