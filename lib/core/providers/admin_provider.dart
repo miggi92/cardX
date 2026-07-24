@@ -62,6 +62,14 @@ final positionsBySportProvider =
       return ref.watch(adminRepoProvider).listPositions(sportId: sportId);
     });
 
+final leaguesBySportProvider =
+    FutureProvider.family<List<LeagueOption>, String>((ref, sportId) async {
+      if (sportId.trim().isEmpty) {
+        return const [];
+      }
+      return ref.watch(adminRepoProvider).listLeagues(sportId: sportId);
+    });
+
 final seasonsProvider = FutureProvider<List<SeasonOption>>((ref) async {
   return ref.watch(adminRepoProvider).listSeasons();
 });

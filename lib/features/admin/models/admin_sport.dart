@@ -24,6 +24,13 @@ class SeasonOption {
   final bool isActive;
 }
 
+class LeagueOption {
+  const LeagueOption({required this.id, required this.displayName});
+
+  final String id;
+  final String displayName;
+}
+
 enum SportRequestStatus { pending, approved, rejected }
 
 class SportRequest {
