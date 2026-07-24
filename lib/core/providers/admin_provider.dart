@@ -62,6 +62,10 @@ final positionsBySportProvider =
       return ref.watch(adminRepoProvider).listPositions(sportId: sportId);
     });
 
+final seasonsProvider = FutureProvider<List<SeasonOption>>((ref) async {
+  return ref.watch(adminRepoProvider).listSeasons();
+});
+
 final pendingSportRequestsProvider = FutureProvider<List<SportRequest>>((
   ref,
 ) async {

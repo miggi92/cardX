@@ -130,6 +130,23 @@ class SupabaseAdminRepository {
         .toList();
   }
 
+  Future<List<SeasonOption>> listSeasons() async {
+    final response = await _supabase.rpc('list_seasons');
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => SeasonOption(
+            id: row['id'] as String? ?? '',
+            displayName:
+                row['display_name'] as String? ?? row['id'] as String? ?? '',
+            isActive: row['is_active'] == true,
+          ),
+        )
+        .where((season) => season.id.isNotEmpty)
+        .toList();
+  }
+
   Future<String> submitSportRequest({
     required String sportId,
     required String displayName,

@@ -12,6 +12,18 @@ class PositionOption {
   final String displayName;
 }
 
+class SeasonOption {
+  const SeasonOption({
+    required this.id,
+    required this.displayName,
+    required this.isActive,
+  });
+
+  final String id;
+  final String displayName;
+  final bool isActive;
+}
+
 enum SportRequestStatus { pending, approved, rejected }
 
 class SportRequest {

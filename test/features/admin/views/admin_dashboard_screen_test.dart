@@ -31,6 +31,10 @@ void main() {
     SportOption(id: 'handball', displayName: 'Handball'),
   ];
 
+  const testSeasons = [
+    SeasonOption(id: '2026/27', displayName: '2026/27', isActive: true),
+  ];
+
   testWidgets('shows sport request section and validates required fields', (
     tester,
   ) async {
@@ -43,6 +47,7 @@ void main() {
           storageImageResolverProvider.overrideWithValue(_TestImageResolver()),
           adminScopeProvider.overrideWith((ref) => testScope),
           sportsProvider.overrideWith((ref) => testSports),
+          seasonsProvider.overrideWith((ref) => testSeasons),
           pendingAdminAccessRequestsProvider.overrideWith(
             (ref) => const <AdminAccessRequest>[],
           ),
@@ -93,6 +98,7 @@ void main() {
           storageImageResolverProvider.overrideWithValue(_TestImageResolver()),
           adminScopeProvider.overrideWith((ref) => testScope),
           sportsProvider.overrideWith((ref) => testSports),
+          seasonsProvider.overrideWith((ref) => testSeasons),
           pendingAdminAccessRequestsProvider.overrideWith(
             (ref) => const <AdminAccessRequest>[],
           ),

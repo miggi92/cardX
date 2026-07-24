@@ -25,7 +25,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _userSearchController = TextEditingController();
   final _nameController = TextEditingController();
   final _leagueController = TextEditingController();
-  final _seasonController = TextEditingController(text: _defaultSeason());
   final _goalsController = TextEditingController(text: '0');
   final _gamesController = TextEditingController(text: '0');
   final _sportRequestIdController = TextEditingController();
@@ -34,6 +33,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   String? _selectedSport;
   String? _selectedPosition;
+  String? _selectedSeason;
   String? _selectedClubId;
   String? _selectedRoleUserId;
   String? _selectedRoleUserEmail;
@@ -48,19 +48,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   bool _roleCanEditPlayers = true;
   List<AdminUserOption> _userSearchResults = const [];
 
-  static String _defaultSeason() {
-    final now = DateTime.now();
-    final startYear = now.month >= 7 ? now.year : now.year - 1;
-    final endShort = ((startYear + 1) % 100).toString().padLeft(2, '0');
-    return '$startYear/$endShort';
-  }
-
   @override
   void dispose() {
     _userSearchController.dispose();
     _nameController.dispose();
     _leagueController.dispose();
-    _seasonController.dispose();
     _goalsController.dispose();
     _gamesController.dispose();
     _sportRequestIdController.dispose();
@@ -90,6 +82,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   Widget _buildBody(BuildContext context, AdminScope scope) {
     final sportsAsync = ref.watch(sportsProvider);
+    final seasonsAsync = ref.watch(seasonsProvider);
 
     if (!scope.canManagePlayers) {
       return const Center(
@@ -140,6 +133,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       }
     });
 
+    seasonsAsync.whenData((seasons) {
+      if (_selectedSeason == null && seasons.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _selectedSeason = seasons.first.id;
+          });
+        });
+      }
+    });
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(adminScopeProvider);
@@ -147,6 +153,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ref.invalidate(pendingSportRequestsProvider);
         ref.invalidate(clubAdminRoleAssignmentsProvider);
         ref.invalidate(sportsProvider);
+        ref.invalidate(seasonsProvider);
         if (_selectedSport != null) {
           ref.invalidate(positionsBySportProvider(_selectedSport!));
         }
@@ -775,12 +782,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     validator: _requiredValidator,
                   ),
                   _buildSmallField(
-                    _seasonController,
-                    'Saison',
-                    hintText: '2026/27',
-                    validator: _requiredValidator,
-                  ),
-                  _buildSmallField(
                     _goalsController,
                     'Tore',
                     keyboardType: TextInputType.number,
@@ -891,6 +892,61 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   'Bitte zuerst eine Sportart auswaehlen.',
                   style: TextStyle(color: Colors.orange),
                 ),
+              const SizedBox(height: 12),
+              ref
+                  .watch(seasonsProvider)
+                  .when(
+                    loading: () => const LinearProgressIndicator(minHeight: 2),
+                    error: (error, _) =>
+                        Text('Saisons konnten nicht geladen werden: $error'),
+                    data: (seasons) {
+                      final selectedSeason = _selectedSeason;
+                      final isSelectedValid = seasons.any(
+                        (season) => season.id == selectedSeason,
+                      );
+
+                      if (!isSelectedValid && seasons.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedSeason = seasons.first.id;
+                          });
+                        });
+                      }
+
+                      return DropdownButtonFormField<String>(
+                        initialValue: isSelectedValid ? selectedSeason : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Saison',
+                          prefixIcon: Icon(Icons.calendar_month_outlined),
+                        ),
+                        items: seasons
+                            .map(
+                              (season) => DropdownMenuItem<String>(
+                                value: season.id,
+                                child: Text(
+                                  season.isActive
+                                      ? '${season.displayName} (Aktiv)'
+                                      : season.displayName,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: canCreate
+                            ? (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _selectedSeason = value;
+                                });
+                              }
+                            : null,
+                      );
+                    },
+                  ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -1086,10 +1142,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final clubId = _selectedClubId;
     final selectedSport = _selectedSport;
     final selectedPosition = _selectedPosition;
-    if (clubId == null || selectedSport == null || selectedPosition == null) {
+    final selectedSeason = _selectedSeason;
+    if (clubId == null ||
+        selectedSport == null ||
+        selectedPosition == null ||
+        selectedSeason == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Bitte Verein, Sport und Position auswaehlen.'),
+          content: Text('Bitte Verein, Sport, Position und Saison auswaehlen.'),
         ),
       );
       return;
@@ -1107,7 +1167,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         clubId: clubId,
         sport: selectedSport,
         league: _leagueController.text.trim(),
-        season: _seasonController.text.trim(),
+        season: selectedSeason,
         goals: _parseNonNegative(_goalsController.text),
         games: _parseNonNegative(_gamesController.text),
         imageBytes: _selectedImageBytes,
@@ -1120,7 +1180,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
       _nameController.clear();
       _leagueController.clear();
-      _seasonController.text = _defaultSeason();
       _goalsController.text = '0';
       _gamesController.text = '0';
       setState(() {
@@ -1578,7 +1637,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Future<void> _editPlayer(AdminScope scope, AdminPlayer player) async {
     final nameController = TextEditingController(text: player.name);
     final leagueController = TextEditingController(text: player.league);
-    final seasonController = TextEditingController(text: player.season);
     final goalsController = TextEditingController(
       text: player.goals.toString(),
     );
@@ -1587,6 +1645,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
     var selectedSport = player.sport;
     String? selectedPosition = player.position;
+    String? selectedSeason = player.season;
     var selectedClubId = player.clubId;
     Uint8List? selectedBytes;
     String? selectedImageName;
@@ -1613,6 +1672,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final formKey = GlobalKey<FormState>();
     final repo = ref.read(adminRepoProvider);
     final sports = await repo.listSports();
+    final seasons = await repo.listSeasons();
     if (!mounted) {
       return;
     }
@@ -1640,6 +1700,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     if (!initialPositions.any((position) => position.id == selectedPosition) &&
         initialPositions.isNotEmpty) {
       selectedPosition = initialPositions.first.id;
+    }
+
+    if (!seasons.any((season) => season.id == selectedSeason) &&
+        seasons.isNotEmpty) {
+      selectedSeason = seasons.first.id;
     }
 
     final saved = await showModalBottomSheet<bool>(
@@ -1772,10 +1837,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         decoration: const InputDecoration(labelText: 'Liga'),
                       ),
                       const SizedBox(height: 10),
-                      TextFormField(
-                        controller: seasonController,
-                        validator: _requiredValidator,
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedSeason,
                         decoration: const InputDecoration(labelText: 'Saison'),
+                        validator: (value) =>
+                            value == null ? 'Pflichtfeld' : null,
+                        items: seasons
+                            .map(
+                              (season) => DropdownMenuItem<String>(
+                                value: season.id,
+                                child: Text(
+                                  season.isActive
+                                      ? '${season.displayName} (Aktiv)'
+                                      : season.displayName,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setModalState(() {
+                            selectedSeason = value;
+                          });
+                        },
                       ),
                       const SizedBox(height: 10),
                       TextFormField(
@@ -1834,7 +1917,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     if (saved != true || !mounted) {
       nameController.dispose();
       leagueController.dispose();
-      seasonController.dispose();
       goalsController.dispose();
       gamesController.dispose();
       return;
@@ -1850,7 +1932,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             clubId: selectedClubId,
             sport: selectedSport,
             league: leagueController.text.trim(),
-            season: seasonController.text.trim(),
+            season: selectedSeason ?? player.season,
             goals: _parseNonNegative(goalsController.text),
             games: _parseNonNegative(gamesController.text),
             imageBytes: selectedBytes,
@@ -1883,7 +1965,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     } finally {
       nameController.dispose();
       leagueController.dispose();
-      seasonController.dispose();
       goalsController.dispose();
       gamesController.dispose();
     }
