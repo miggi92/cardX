@@ -1541,6 +1541,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     final formKey = GlobalKey<FormState>();
     final sports = await ref.read(adminRepoProvider).listSports();
+    if (!mounted) {
+      return;
+    }
     if (!sports.any((sport) => sport.id == selectedSport) &&
         sports.isNotEmpty) {
       selectedSport = sports.first.id;
