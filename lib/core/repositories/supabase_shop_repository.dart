@@ -15,6 +15,37 @@ class SupabaseShopRepository {
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
 
+  PlayerStats _readPlayerStats(dynamic rawStats) {
+    if (rawStats is Map<String, dynamic>) {
+      return PlayerStats(
+        goals: (rawStats['goals'] as num?)?.toInt() ?? 0,
+        games: (rawStats['games'] as num?)?.toInt() ?? 0,
+      );
+    }
+
+    if (rawStats is List && rawStats.isNotEmpty && rawStats.first is Map) {
+      final first = rawStats.first as Map;
+      return PlayerStats(
+        goals: (first['goals'] as num?)?.toInt() ?? 0,
+        games: (first['games'] as num?)?.toInt() ?? 0,
+      );
+    }
+
+    return const PlayerStats(goals: 0, games: 0);
+  }
+
+  PlayerStats _resolvePlayerStats(Map<String, dynamic> player) {
+    final nestedStats = _readPlayerStats(player['player_stats']);
+    if (nestedStats.goals != 0 || nestedStats.games != 0) {
+      return nestedStats;
+    }
+
+    return PlayerStats(
+      goals: (player['goals'] as num?)?.toInt() ?? 0,
+      games: (player['games'] as num?)?.toInt() ?? 0,
+    );
+  }
+
   PackType _parsePackType(String rawType) {
     switch (rawType) {
       case 'club':
@@ -95,7 +126,7 @@ class SupabaseShopRepository {
     String filterValue,
   ) async {
     const playerPoolSelect =
-        'id, name, position, league, sport, goals, games, clubs!inner(id, name)';
+        'id, name, position, league, sport, season, player_stats(goals, games), clubs!inner(id, name)';
 
     if (type == PackType.club) {
       return await _supabase
@@ -123,7 +154,7 @@ class SupabaseShopRepository {
     return await _supabase
         .from('player_pool')
         .select(
-          'id, name, position, league, sport, goals, games, clubs(id, name)',
+          'id, name, position, league, sport, season, player_stats(goals, games), clubs(id, name)',
         );
   }
 
@@ -177,6 +208,7 @@ class SupabaseShopRepository {
             'position': row['player_position'],
             'league': row['player_league'],
             'sport': row['player_sport'],
+            'season': row['player_season'],
             'goals': row['player_goals'],
             'games': row['player_games'],
             'rarity': row['rarity'],
@@ -244,10 +276,7 @@ class SupabaseShopRepository {
           teamLogoUrl: clubLogoById['${club['id']}']!,
           playerImageUrl: playerImageById['${player['id']}']!,
           rarity: rarity,
-          stats: PlayerStats(
-            goals: (player['goals'] as num).toInt(),
-            games: (player['games'] as num).toInt(),
-          ),
+          stats: _resolvePlayerStats(player),
           sport: (player['sport'] as String?) ?? '',
         ),
       );
