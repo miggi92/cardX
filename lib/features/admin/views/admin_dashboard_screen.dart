@@ -24,7 +24,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _sportRequestFormKey = GlobalKey<FormState>();
   final _userSearchController = TextEditingController();
   final _nameController = TextEditingController();
-  final _positionController = TextEditingController();
   final _leagueController = TextEditingController();
   final _seasonController = TextEditingController(text: _defaultSeason());
   final _goalsController = TextEditingController(text: '0');
@@ -34,6 +33,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _sportRequestMessageController = TextEditingController();
 
   String? _selectedSport;
+  String? _selectedPosition;
   String? _selectedClubId;
   String? _selectedRoleUserId;
   String? _selectedRoleUserEmail;
@@ -59,7 +59,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   void dispose() {
     _userSearchController.dispose();
     _nameController.dispose();
-    _positionController.dispose();
     _leagueController.dispose();
     _seasonController.dispose();
     _goalsController.dispose();
@@ -148,6 +147,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ref.invalidate(pendingSportRequestsProvider);
         ref.invalidate(clubAdminRoleAssignmentsProvider);
         ref.invalidate(sportsProvider);
+        if (_selectedSport != null) {
+          ref.invalidate(positionsBySportProvider(_selectedSport!));
+        }
         if (_selectedClubId != null) {
           ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
         }
@@ -768,11 +770,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     validator: _requiredValidator,
                   ),
                   _buildSmallField(
-                    _positionController,
-                    'Position',
-                    validator: _requiredValidator,
-                  ),
-                  _buildSmallField(
                     _leagueController,
                     'Liga',
                     validator: _requiredValidator,
@@ -827,12 +824,73 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 }
                                 setState(() {
                                   _selectedSport = value;
+                                  _selectedPosition = null;
                                 });
                               }
                             : null,
                       );
                     },
                   ),
+              const SizedBox(height: 12),
+              if (_selectedSport != null)
+                ref
+                    .watch(positionsBySportProvider(_selectedSport!))
+                    .when(
+                      loading: () =>
+                          const LinearProgressIndicator(minHeight: 2),
+                      error: (error, _) => Text(
+                        'Positionen konnten nicht geladen werden: $error',
+                      ),
+                      data: (positions) {
+                        final isSelectedValid = positions.any(
+                          (position) => position.id == _selectedPosition,
+                        );
+
+                        if (!isSelectedValid && positions.isNotEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedPosition = positions.first.id;
+                            });
+                          });
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          initialValue: isSelectedValid
+                              ? _selectedPosition
+                              : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Position',
+                            prefixIcon: Icon(Icons.place_outlined),
+                          ),
+                          items: positions
+                              .map(
+                                (position) => DropdownMenuItem<String>(
+                                  value: position.id,
+                                  child: Text(position.displayName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: canCreate
+                              ? (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _selectedPosition = value;
+                                  });
+                                }
+                              : null,
+                        );
+                      },
+                    )
+              else
+                const Text(
+                  'Bitte zuerst eine Sportart auswaehlen.',
+                  style: TextStyle(color: Colors.orange),
+                ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -1027,9 +1085,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     final clubId = _selectedClubId;
     final selectedSport = _selectedSport;
-    if (clubId == null || selectedSport == null) {
+    final selectedPosition = _selectedPosition;
+    if (clubId == null || selectedSport == null || selectedPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte Verein und Sport auswaehlen.')),
+        const SnackBar(
+          content: Text('Bitte Verein, Sport und Position auswaehlen.'),
+        ),
       );
       return;
     }
@@ -1042,7 +1103,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       final repo = ref.read(adminRepoProvider);
       await repo.createPlayer(
         name: _nameController.text.trim(),
-        position: _positionController.text.trim(),
+        position: selectedPosition,
         clubId: clubId,
         sport: selectedSport,
         league: _leagueController.text.trim(),
@@ -1058,12 +1119,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       }
 
       _nameController.clear();
-      _positionController.clear();
       _leagueController.clear();
       _seasonController.text = _defaultSeason();
       _goalsController.text = '0';
       _gamesController.text = '0';
       setState(() {
+        _selectedPosition = null;
         _selectedImageBytes = null;
         _selectedImageName = null;
       });
@@ -1516,7 +1577,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   Future<void> _editPlayer(AdminScope scope, AdminPlayer player) async {
     final nameController = TextEditingController(text: player.name);
-    final positionController = TextEditingController(text: player.position);
     final leagueController = TextEditingController(text: player.league);
     final seasonController = TextEditingController(text: player.season);
     final goalsController = TextEditingController(
@@ -1526,6 +1586,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       text: player.games.toString(),
     );
     var selectedSport = player.sport;
+    String? selectedPosition = player.position;
     var selectedClubId = player.clubId;
     Uint8List? selectedBytes;
     String? selectedImageName;
@@ -1550,13 +1611,35 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     final formKey = GlobalKey<FormState>();
-    final sports = await ref.read(adminRepoProvider).listSports();
+    final repo = ref.read(adminRepoProvider);
+    final sports = await repo.listSports();
     if (!mounted) {
       return;
     }
+
+    final positionEntries = await Future.wait(
+      sports.map(
+        (sport) async =>
+            MapEntry(sport.id, await repo.listPositions(sportId: sport.id)),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+
+    final positionsBySport = <String, List<PositionOption>>{
+      for (final entry in positionEntries) entry.key: entry.value,
+    };
+
     if (!sports.any((sport) => sport.id == selectedSport) &&
         sports.isNotEmpty) {
       selectedSport = sports.first.id;
+    }
+
+    final initialPositions = positionsBySport[selectedSport] ?? const [];
+    if (!initialPositions.any((position) => position.id == selectedPosition) &&
+        initialPositions.isNotEmpty) {
+      selectedPosition = initialPositions.first.id;
     }
 
     final saved = await showModalBottomSheet<bool>(
@@ -1590,14 +1673,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         decoration: const InputDecoration(labelText: 'Name'),
                       ),
                       const SizedBox(height: 10),
-                      TextFormField(
-                        controller: positionController,
-                        validator: _requiredValidator,
-                        decoration: const InputDecoration(
-                          labelText: 'Position',
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
                         initialValue: selectedSport,
                         decoration: const InputDecoration(labelText: 'Sport'),
@@ -1615,7 +1690,54 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           }
                           setModalState(() {
                             selectedSport = value;
+                            final positionsForSport =
+                                positionsBySport[value] ?? const [];
+                            if (positionsForSport.any(
+                              (position) => position.id == selectedPosition,
+                            )) {
+                              return;
+                            }
+                            selectedPosition = positionsForSport.isEmpty
+                                ? null
+                                : positionsForSport.first.id;
                           });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (context) {
+                          final positionsForSport =
+                              positionsBySport[selectedSport] ?? const [];
+
+                          if (!positionsForSport.any(
+                            (position) => position.id == selectedPosition,
+                          )) {
+                            selectedPosition = positionsForSport.isEmpty
+                                ? null
+                                : positionsForSport.first.id;
+                          }
+
+                          return DropdownButtonFormField<String>(
+                            initialValue: selectedPosition,
+                            decoration: const InputDecoration(
+                              labelText: 'Position',
+                            ),
+                            validator: (value) =>
+                                value == null ? 'Pflichtfeld' : null,
+                            items: positionsForSport
+                                .map(
+                                  (position) => DropdownMenuItem<String>(
+                                    value: position.id,
+                                    child: Text(position.displayName),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setModalState(() {
+                                selectedPosition = value;
+                              });
+                            },
+                          );
                         },
                       ),
                       const SizedBox(height: 10),
@@ -1711,7 +1833,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     if (saved != true || !mounted) {
       nameController.dispose();
-      positionController.dispose();
       leagueController.dispose();
       seasonController.dispose();
       goalsController.dispose();
@@ -1725,7 +1846,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           .updatePlayer(
             playerId: player.id,
             name: nameController.text.trim(),
-            position: positionController.text.trim(),
+            position: selectedPosition ?? player.position,
             clubId: selectedClubId,
             sport: selectedSport,
             league: leagueController.text.trim(),
@@ -1761,7 +1882,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       }
     } finally {
       nameController.dispose();
-      positionController.dispose();
       leagueController.dispose();
       seasonController.dispose();
       goalsController.dispose();

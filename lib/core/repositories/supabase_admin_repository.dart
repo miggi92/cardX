@@ -106,6 +106,30 @@ class SupabaseAdminRepository {
         .toList();
   }
 
+  Future<List<PositionOption>> listPositions({required String sportId}) async {
+    final normalized = sportId.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return const [];
+    }
+
+    final response = await _supabase.rpc(
+      'list_positions',
+      params: {'p_sport': normalized},
+    );
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => PositionOption(
+            id: row['id'] as String? ?? '',
+            displayName:
+                row['display_name'] as String? ?? row['id'] as String? ?? '',
+          ),
+        )
+        .where((position) => position.id.isNotEmpty)
+        .toList();
+  }
+
   Future<String> submitSportRequest({
     required String sportId,
     required String displayName,

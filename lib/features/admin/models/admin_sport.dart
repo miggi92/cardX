@@ -5,6 +5,13 @@ class SportOption {
   final String displayName;
 }
 
+class PositionOption {
+  const PositionOption({required this.id, required this.displayName});
+
+  final String id;
+  final String displayName;
+}
+
 enum SportRequestStatus { pending, approved, rejected }
 
 class SportRequest {

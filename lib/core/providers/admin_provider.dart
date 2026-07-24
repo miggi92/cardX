@@ -54,6 +54,14 @@ final sportsProvider = FutureProvider<List<SportOption>>((ref) async {
   return ref.watch(adminRepoProvider).listSports();
 });
 
+final positionsBySportProvider =
+    FutureProvider.family<List<PositionOption>, String>((ref, sportId) async {
+      if (sportId.trim().isEmpty) {
+        return const [];
+      }
+      return ref.watch(adminRepoProvider).listPositions(sportId: sportId);
+    });
+
 final pendingSportRequestsProvider = FutureProvider<List<SportRequest>>((
   ref,
 ) async {
