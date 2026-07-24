@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:cardx/core/providers/admin_provider.dart';
+import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
+import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +21,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _createFormKey = GlobalKey<FormState>();
+  final _sportRequestFormKey = GlobalKey<FormState>();
   final _userSearchController = TextEditingController();
   final _nameController = TextEditingController();
   final _positionController = TextEditingController();
@@ -26,16 +29,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _seasonController = TextEditingController(text: _defaultSeason());
   final _goalsController = TextEditingController(text: '0');
   final _gamesController = TextEditingController(text: '0');
+  final _sportRequestIdController = TextEditingController();
+  final _sportRequestNameController = TextEditingController();
+  final _sportRequestMessageController = TextEditingController();
 
-  String _selectedSport = 'soccer';
+  String? _selectedSport;
   String? _selectedClubId;
   String? _selectedRoleUserId;
   String? _selectedRoleUserEmail;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
   bool _isSaving = false;
+  bool _isSubmittingSportRequest = false;
   bool _isRoleSaving = false;
   bool _isUserSearching = false;
+  bool _filterPendingBySelectedClub = true;
   bool _roleCanCreatePlayers = true;
   bool _roleCanEditPlayers = true;
   List<AdminUserOption> _userSearchResults = const [];
@@ -56,6 +64,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     _seasonController.dispose();
     _goalsController.dispose();
     _gamesController.dispose();
+    _sportRequestIdController.dispose();
+    _sportRequestNameController.dispose();
+    _sportRequestMessageController.dispose();
     super.dispose();
   }
 
@@ -79,6 +90,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildBody(BuildContext context, AdminScope scope) {
+    final sportsAsync = ref.watch(sportsProvider);
+
     if (!scope.canManagePlayers) {
       return const Center(
         child: Padding(
@@ -115,11 +128,26 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     _selectedClubId ??= manageableClubs.first.clubId;
     final selectedPermission = scope.permissionForClub(_selectedClubId ?? '');
 
+    sportsAsync.whenData((sports) {
+      if (_selectedSport == null && sports.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _selectedSport = sports.first.id;
+          });
+        });
+      }
+    });
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(adminScopeProvider);
         ref.invalidate(pendingAdminAccessRequestsProvider);
+        ref.invalidate(pendingSportRequestsProvider);
         ref.invalidate(clubAdminRoleAssignmentsProvider);
+        ref.invalidate(sportsProvider);
         if (_selectedClubId != null) {
           ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
         }
@@ -130,6 +158,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _buildScopeCard(scope),
           const SizedBox(height: 12),
           _buildPendingRequestsSection(context, scope),
+          const SizedBox(height: 12),
+          _buildSportRequestSection(context, scope),
+          if (scope.isGlobalAdmin) ...[
+            const SizedBox(height: 12),
+            _buildPendingSportRequestsSection(context),
+          ],
           if (scope.isGlobalAdmin) ...[
             const SizedBox(height: 12),
             _buildRoleManagementSection(context),
@@ -168,6 +202,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildClubSelector(List<AdminClubPermission> clubs) {
+    final selectedClubId = _selectedClubId;
+    final imageResolver = ref.watch(storageImageResolverProvider);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -185,6 +222,43 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ),
               )
               .toList(),
+          selectedItemBuilder: (context) {
+            return clubs.map((club) {
+              if (club.clubId != selectedClubId) {
+                return Text(club.clubName, overflow: TextOverflow.ellipsis);
+              }
+
+              return FutureBuilder<String>(
+                future: imageResolver.resolveImageUrl(
+                  bucketName: 'club-logos',
+                  objectId: club.clubId,
+                  isPublic: true,
+                ),
+                builder: (context, snapshot) {
+                  final logoUrl = snapshot.data ?? '';
+                  return Row(
+                    children: [
+                      if (logoUrl.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.transparent,
+                            backgroundImage: NetworkImage(logoUrl),
+                          ),
+                        ),
+                      Expanded(
+                        child: Text(
+                          club.clubName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }).toList();
+          },
           onChanged: (value) {
             if (value == null) {
               return;
@@ -200,6 +274,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   Widget _buildPendingRequestsSection(BuildContext context, AdminScope scope) {
     final requestsAsync = ref.watch(pendingAdminAccessRequestsProvider);
+    final selectedClubId = _selectedClubId;
 
     return Card(
       child: Padding(
@@ -217,18 +292,35 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               'Anfragen fuer noch nicht angelegte Vereine kann nur der Super-Admin genehmigen und dabei den Verein erstellen.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            const SizedBox(height: 10),
+            FilterChip(
+              label: const Text('Nur aktueller Verein'),
+              selected: _filterPendingBySelectedClub,
+              onSelected: (value) {
+                setState(() {
+                  _filterPendingBySelectedClub = value;
+                });
+              },
+            ),
             const SizedBox(height: 12),
             requestsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) =>
                   Text('Anfragen konnten nicht geladen werden: $error'),
               data: (requests) {
-                if (requests.isEmpty) {
+                final filtered =
+                    _filterPendingBySelectedClub && selectedClubId != null
+                    ? requests
+                          .where((request) => request.clubId == selectedClubId)
+                          .toList()
+                    : requests;
+
+                if (filtered.isEmpty) {
                   return const Text('Keine offenen Anfragen.');
                 }
 
                 return Column(
-                  children: requests.map((request) {
+                  children: filtered.map((request) {
                     final canApproveMissingClub =
                         !request.isForMissingClub || scope.isGlobalAdmin;
 
@@ -291,6 +383,167 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                     );
                   }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSportRequestSection(BuildContext context, AdminScope scope) {
+    final canRequestSport =
+        scope.isGlobalAdmin ||
+        scope.clubs.any((club) => club.canCreatePlayers || club.canEditPlayers);
+
+    if (!canRequestSport) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _sportRequestFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Neue Sportart beantragen',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Falls eine Sportart fehlt, kann sie hier beantragt werden. Ein Super-Admin kann sie dann genehmigen.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _sportRequestIdController,
+                validator: _requiredValidator,
+                decoration: const InputDecoration(
+                  labelText: 'Sport-ID (z. B. ice_hockey)',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _sportRequestNameController,
+                validator: _requiredValidator,
+                decoration: const InputDecoration(
+                  labelText: 'Anzeigename (z. B. Ice Hockey)',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _sportRequestMessageController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Begruendung (optional)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _isSubmittingSportRequest
+                      ? null
+                      : _submitSportRequest,
+                  icon: _isSubmittingSportRequest
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.addchart_outlined),
+                  label: const Text('Sportart beantragen'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingSportRequestsSection(BuildContext context) {
+    final pendingAsync = ref.watch(pendingSportRequestsProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Offene Sportart-Anfragen (Super-Admin)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            pendingAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Text(
+                'Sportart-Anfragen konnten nicht geladen werden: $error',
+              ),
+              data: (requests) {
+                if (requests.isEmpty) {
+                  return const Text('Keine offenen Sportart-Anfragen.');
+                }
+
+                return Column(
+                  children: requests
+                      .map(
+                        (request) => Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${request.requestedDisplayName} (${request.requestedSportId})',
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Anfragender User: ${request.requesterUserId}',
+                                ),
+                                if (request.message != null &&
+                                    request.message!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text('Nachricht: ${request.message}'),
+                                ],
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: () => _reviewSportRequest(
+                                        request: request,
+                                        approve: true,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.check_circle_outline,
+                                      ),
+                                      label: const Text('Genehmigen'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _reviewSportRequest(
+                                        request: request,
+                                        approve: false,
+                                      ),
+                                      icon: const Icon(Icons.cancel_outlined),
+                                      label: const Text('Ablehnen'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),
@@ -535,27 +788,41 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSport,
-                decoration: const InputDecoration(
-                  labelText: 'Sport',
-                  prefixIcon: Icon(Icons.sports),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'soccer', child: Text('Soccer')),
-                  DropdownMenuItem(value: 'handball', child: Text('Handball')),
-                ],
-                onChanged: canCreate
-                    ? (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedSport = value;
-                        });
-                      }
-                    : null,
-              ),
+              ref
+                  .watch(sportsProvider)
+                  .when(
+                    loading: () => const LinearProgressIndicator(minHeight: 2),
+                    error: (error, _) =>
+                        Text('Sportarten konnten nicht geladen werden: $error'),
+                    data: (sports) {
+                      final selectedSport = _selectedSport;
+                      return DropdownButtonFormField<String>(
+                        initialValue: selectedSport,
+                        decoration: const InputDecoration(
+                          labelText: 'Sport',
+                          prefixIcon: Icon(Icons.sports),
+                        ),
+                        items: sports
+                            .map(
+                              (sport) => DropdownMenuItem<String>(
+                                value: sport.id,
+                                child: Text(sport.displayName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: canCreate
+                            ? (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _selectedSport = value;
+                                });
+                              }
+                            : null,
+                      );
+                    },
+                  ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -749,7 +1016,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     final clubId = _selectedClubId;
-    if (clubId == null) {
+    final selectedSport = _selectedSport;
+    if (clubId == null || selectedSport == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte Verein und Sport auswaehlen.')),
+      );
       return;
     }
 
@@ -763,7 +1034,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         name: _nameController.text.trim(),
         position: _positionController.text.trim(),
         clubId: clubId,
-        sport: _selectedSport,
+        sport: selectedSport,
         league: _leagueController.text.trim(),
         season: _seasonController.text.trim(),
         goals: _parseNonNegative(_goalsController.text),
@@ -809,6 +1080,143 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _isSaving = false;
         });
       }
+    }
+  }
+
+  Future<void> _submitSportRequest() async {
+    if (!(_sportRequestFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isSubmittingSportRequest = true;
+    });
+
+    try {
+      final rawId = _sportRequestIdController.text.trim();
+      await ref
+          .read(adminRepoProvider)
+          .submitSportRequest(
+            sportId: rawId,
+            displayName: _sportRequestNameController.text.trim(),
+            message: _sportRequestMessageController.text.trim(),
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      _sportRequestIdController.clear();
+      _sportRequestNameController.clear();
+      _sportRequestMessageController.clear();
+
+      ref.invalidate(pendingSportRequestsProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sportart-Anfrage gesendet.')),
+      );
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sportart-Anfrage fehlgeschlagen: ${error.message}'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sportart-Anfrage fehlgeschlagen: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingSportRequest = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _reviewSportRequest({
+    required SportRequest request,
+    required bool approve,
+  }) async {
+    final noteController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(approve ? 'Sportart genehmigen' : 'Sportart ablehnen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${request.requestedDisplayName} (${request.requestedSportId})',
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: noteController,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Notiz (optional)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(approve ? 'Genehmigen' : 'Ablehnen'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      noteController.dispose();
+      return;
+    }
+
+    try {
+      await ref
+          .read(adminRepoProvider)
+          .reviewSportRequest(
+            requestId: request.id,
+            approve: approve,
+            decisionNote: noteController.text.trim(),
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      ref.invalidate(pendingSportRequestsProvider);
+      ref.invalidate(sportsProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            approve
+                ? 'Sportart-Anfrage genehmigt.'
+                : 'Sportart-Anfrage abgelehnt.',
+          ),
+        ),
+      );
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Aktion fehlgeschlagen: ${error.message}')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Aktion fehlgeschlagen: $error')),
+        );
+      }
+    } finally {
+      noteController.dispose();
     }
   }
 
@@ -1132,6 +1540,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     final formKey = GlobalKey<FormState>();
+    final sports = await ref.read(adminRepoProvider).listSports();
+    if (!sports.any((sport) => sport.id == selectedSport) &&
+        sports.isNotEmpty) {
+      selectedSport = sports.first.id;
+    }
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -1175,16 +1588,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       DropdownButtonFormField<String>(
                         initialValue: selectedSport,
                         decoration: const InputDecoration(labelText: 'Sport'),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'soccer',
-                            child: Text('Soccer'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'handball',
-                            child: Text('Handball'),
-                          ),
-                        ],
+                        items: sports
+                            .map(
+                              (sport) => DropdownMenuItem<String>(
+                                value: sport.id,
+                                child: Text(sport.displayName),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (value) {
                           if (value == null) {
                             return;

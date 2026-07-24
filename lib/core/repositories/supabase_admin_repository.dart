@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
+import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -88,6 +89,58 @@ class SupabaseAdminRepository {
   Future<List<AdminAccessRequest>> getPendingAdminAccessRequests() async {
     final response = await _supabase.rpc('get_pending_admin_access_requests');
     return _mapRequests((response as List).cast<Map<String, dynamic>>());
+  }
+
+  Future<List<SportOption>> listSports() async {
+    final response = await _supabase.rpc('list_sports');
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => SportOption(
+            id: row['id'] as String? ?? '',
+            displayName:
+                row['display_name'] as String? ?? row['id'] as String? ?? '',
+          ),
+        )
+        .where((sport) => sport.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<String> submitSportRequest({
+    required String sportId,
+    required String displayName,
+    String? message,
+  }) async {
+    final response = await _supabase.rpc(
+      'submit_sport_request',
+      params: {
+        'p_requested_sport_id': sportId,
+        'p_requested_display_name': displayName,
+        'p_message': message,
+      },
+    );
+
+    return '$response';
+  }
+
+  Future<List<SportRequest>> getPendingSportRequests() async {
+    final response = await _supabase.rpc('get_pending_sport_requests');
+    return _mapSportRequests((response as List).cast<Map<String, dynamic>>());
+  }
+
+  Future<void> reviewSportRequest({
+    required String requestId,
+    required bool approve,
+    String? decisionNote,
+  }) async {
+    await _supabase.rpc(
+      'review_sport_request',
+      params: {
+        'p_request_id': requestId,
+        'p_approve': approve,
+        'p_decision_note': decisionNote,
+      },
+    );
   }
 
   Future<void> reviewAdminAccessRequest({
@@ -387,6 +440,20 @@ class SupabaseAdminRepository {
         decisionNote: row['decision_note'] as String?,
         createdAt: createdAt,
         clubName: row['club_name'] as String?,
+      );
+    }).toList();
+  }
+
+  List<SportRequest> _mapSportRequests(List<Map<String, dynamic>> rows) {
+    return rows.map((row) {
+      return SportRequest(
+        id: '${row['id']}',
+        requesterUserId: '${row['requester_user_id']}',
+        requestedSportId: row['requested_sport_id'] as String? ?? '',
+        requestedDisplayName: row['requested_display_name'] as String? ?? '',
+        message: row['message'] as String?,
+        status: SportRequest.parseStatus('${row['status']}'),
+        createdAt: DateTime.tryParse('${row['created_at']}') ?? DateTime.now(),
       );
     }).toList();
   }
