@@ -817,9 +817,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       }
 
                       return DropdownButtonFormField<String>(
-                        initialValue: isSelectedValid
-                            ? selectedSport
-                            : (sports.isNotEmpty ? sports.first.id : null),
+                        initialValue: isSelectedValid ? selectedSport : null,
                         decoration: const InputDecoration(
                           labelText: 'Sport',
                           prefixIcon: Icon(Icons.sports),
@@ -876,9 +874,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         return DropdownButtonFormField<String>(
                           initialValue: isSelectedValid
                               ? _selectedPosition
-                              : (positions.isNotEmpty
-                                    ? positions.first.id
-                                    : null),
+                              : null,
                           decoration: const InputDecoration(
                             labelText: 'Position',
                             prefixIcon: Icon(Icons.place_outlined),
@@ -937,7 +933,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         return DropdownButtonFormField<String>(
                           initialValue: isSelectedValid
                               ? _selectedLeague
-                              : (leagues.isNotEmpty ? leagues.first.id : null),
+                              : null,
                           decoration: const InputDecoration(
                             labelText: 'Liga',
                             prefixIcon: Icon(Icons.emoji_events_outlined),
