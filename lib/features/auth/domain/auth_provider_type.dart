@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-enum AuthProviderType {
-  google,
-  apple,
-  github,
-  microsoft,
-}
+enum AuthProviderType { google, apple, github, microsoft }
 
 extension AuthProviderTypeX on AuthProviderType {
   String get label {

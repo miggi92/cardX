@@ -9,7 +9,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return SupabaseAuthRepository(Supabase.instance.client);
 });
 
-final authControllerProvider = NotifierProvider<AuthController, AuthControllerState>(AuthController.new);
+final authControllerProvider =
+    NotifierProvider<AuthController, AuthControllerState>(AuthController.new);
 
 class AuthControllerState {
   const AuthControllerState({
@@ -34,8 +35,11 @@ class AuthControllerState {
     bool clearProvider = false,
   }) {
     return AuthControllerState(
-      isPasswordAuthLoading: isPasswordAuthLoading ?? this.isPasswordAuthLoading,
-      loadingProvider: clearProvider ? null : (loadingProvider ?? this.loadingProvider),
+      isPasswordAuthLoading:
+          isPasswordAuthLoading ?? this.isPasswordAuthLoading,
+      loadingProvider: clearProvider
+          ? null
+          : (loadingProvider ?? this.loadingProvider),
       isAccountDeletionLoading:
           isAccountDeletionLoading ?? this.isAccountDeletionLoading,
     );
@@ -60,7 +64,10 @@ class AuthController extends Notifier<AuthControllerState> {
     return const AuthControllerState();
   }
 
-  Future<void> signInWithEmail({required String email, required String password}) async {
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
     state = state.copyWith(isPasswordAuthLoading: true);
     try {
       await _authRepository.signInWithEmail(email: email, password: password);
@@ -73,10 +80,16 @@ class AuthController extends Notifier<AuthControllerState> {
     }
   }
 
-  Future<AuthResponse> signUpWithEmail({required String email, required String password}) async {
+  Future<AuthResponse> signUpWithEmail({
+    required String email,
+    required String password,
+  }) async {
     state = state.copyWith(isPasswordAuthLoading: true);
     try {
-      return await _authRepository.signUpWithEmail(email: email, password: password);
+      return await _authRepository.signUpWithEmail(
+        email: email,
+        password: password,
+      );
     } on AuthException catch (error) {
       throw AuthFlowException(error.message);
     } catch (_) {

@@ -9,12 +9,18 @@ class SupabaseAuthRepository implements AuthRepository {
   final SupabaseClient _client;
 
   @override
-  Future<void> signInWithEmail({required String email, required String password}) {
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) {
     return _client.auth.signInWithPassword(email: email, password: password);
   }
 
   @override
-  Future<AuthResponse> signUpWithEmail({required String email, required String password}) {
+  Future<AuthResponse> signUpWithEmail({
+    required String email,
+    required String password,
+  }) {
     return _client.auth.signUp(email: email, password: password);
   }
 

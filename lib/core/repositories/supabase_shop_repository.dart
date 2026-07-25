@@ -10,7 +10,8 @@ class SupabaseShopRepository {
   SupabaseShopRepository({
     required SupabaseStorageImageResolver imageResolver,
     SupabaseClient? supabase,
-  }) : _supabase = supabase ?? Supabase.instance.client, _imageResolver = imageResolver;
+  }) : _supabase = supabase ?? Supabase.instance.client,
+       _imageResolver = imageResolver;
 
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
