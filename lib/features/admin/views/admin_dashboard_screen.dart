@@ -11,6 +11,7 @@ import 'package:cardx/features/admin/widgets/admin_action_dialogs.dart';
 import 'package:cardx/features/admin/widgets/admin_edit_player_sheet.dart';
 import 'package:cardx/features/admin/widgets/admin_dashboard_sections.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -87,6 +88,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Widget _buildBody(BuildContext context, AdminScope scope) {
     final sportsAsync = ref.watch(sportsProvider);
     final seasonsAsync = ref.watch(seasonsProvider);
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
     if (!scope.canManagePlayers) {
       return const Center(
@@ -162,6 +164,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     return Column(
       children: [
+        if (kDebugMode)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Card(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Debug: Session & Rechte',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Text('email: ${currentUser?.email ?? '-'}'),
+                    Text('userId: ${currentUser?.id ?? '-'}'),
+                    Text('isGlobalAdmin: ${scope.isGlobalAdmin}'),
+                    Text('clubsInScope: ${scope.clubs.length}'),
+                    Text('selectedClubId: ${_selectedClubId ?? '-'}'),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: SingleChildScrollView(
