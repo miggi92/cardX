@@ -24,4 +24,5 @@
 - Erst bestehendes Muster suchen, dann erweitern.
 - Neue Features entlang `model -> repository -> provider -> view` aufbauen.
 - Strukturupdates in den Agent-Dateien dokumentieren.
+- Bei Architektur- oder Modulgrenzen-Aenderungen `.agents` im selben Change-Set aktualisieren.
 

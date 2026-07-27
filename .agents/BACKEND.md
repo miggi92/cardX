@@ -12,6 +12,7 @@
 - Fordere nur benoetigte Spalten an, kein `select('*')` in neuen Queries.
 - Beruecksichtige bestehende Optimistic-UI-Flows mit Rollback in Providern.
 - Storage-Zugriffe extension-agnostisch und mit Caching nutzen.
+- Bei Backend-Aenderungen die relevanten `.agents` Dateien im selben Commit aktualisieren.
 
 ## DB-Domains (wichtig)
 
@@ -25,3 +26,4 @@
 - RPC-Namen und Parametertypen gegen App-Modelle geprueft
 - Query-Performance und Index-Nutzung beruecksichtigt
 - Fehlerpfade (null/leer/missing assets) getestet
+- Bei RPC/Schema/Repository-Aenderung: `AGENT.md` und `BACKEND.md` aktualisiert

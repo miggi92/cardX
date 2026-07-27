@@ -58,3 +58,8 @@ Erwartete Storage-Buckets:
 
 - `club-logos`
 - `player-images`
+
+## KI-Regeln im Repo
+
+- KI-Aenderungen muessen die betroffenen Dateien unter `.agents/` im selben Change-Set aktualisieren.
+- Frontend-Aenderungen werden mobile-first umgesetzt (zuerst kleine Smartphone-Screens).
