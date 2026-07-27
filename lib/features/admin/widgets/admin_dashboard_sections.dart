@@ -158,8 +158,8 @@ class AdminPendingRequestsSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Vereinsadmins koennen nur Anfragen fuer bestehende Vereine genehmigen. '
-              'Anfragen fuer noch nicht angelegte Vereine kann nur der Super-Admin genehmigen und dabei den Verein erstellen.',
+              'Vereinsadmins können nur Anfragen für bestehende Vereine genehmigen. '
+              'Anfragen für noch nicht angelegte Vereine kann nur der Super-Admin genehmigen und dabei den Verein erstellen.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -501,7 +501,7 @@ class AdminRoleManagementSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Vereinsadmins suchen und fuer den ausgewaehlten Verein zuweisen oder entfernen.',
+              'Vereinsadmins suchen und für den ausgewählten Verein zuweisen oder entfernen.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -530,7 +530,7 @@ class AdminRoleManagementSection extends StatelessWidget {
                 if (selectedRoleUserEmail != null)
                   Expanded(
                     child: Text(
-                      'Ausgewaehlt: $selectedRoleUserEmail',
+                      'Ausgewählt: $selectedRoleUserEmail',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -785,7 +785,7 @@ class AdminCreatePlayerCard extends StatelessWidget {
                 )
               else
                 const Text(
-                  'Bitte zuerst eine Sportart auswaehlen.',
+                  'Bitte zuerst eine Sportart auswählen.',
                   style: TextStyle(color: Colors.orange),
                 ),
               const SizedBox(height: 12),
@@ -819,7 +819,7 @@ class AdminCreatePlayerCard extends StatelessWidget {
                 )
               else
                 const Text(
-                  'Bitte zuerst eine Sportart auswaehlen.',
+                  'Bitte zuerst eine Sportart auswählen.',
                   style: TextStyle(color: Colors.orange),
                 ),
               const SizedBox(height: 12),
@@ -860,12 +860,12 @@ class AdminCreatePlayerCard extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: canCreate ? onPickImage : null,
                     icon: const Icon(Icons.image_outlined),
-                    label: const Text('Bild waehlen'),
+                    label: const Text('Bild wählen'),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      selectedImageName ?? 'Kein Bild ausgewaehlt',
+                      selectedImageName ?? 'Kein Bild ausgewählt',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
