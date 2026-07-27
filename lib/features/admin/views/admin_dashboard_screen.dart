@@ -6,6 +6,9 @@ import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
+import 'package:cardx/features/admin/widgets/admin_edit_player_sheet.dart';
+import 'package:cardx/features/admin/widgets/admin_action_dialogs.dart';
+import 'package:cardx/features/admin/widgets/admin_dashboard_sections.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,7 +44,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   String? _selectedImageName;
   bool _isSaving = false;
   bool _isSubmittingSportRequest = false;
-  bool _isRoleSaving = false;
   bool _isUserSearching = false;
   bool _filterPendingBySelectedClub = true;
   bool _roleCanCreatePlayers = true;
@@ -235,1018 +237,186 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required List<AdminClubPermission> manageableClubs,
     required AdminClubPermission? selectedPermission,
   }) {
+    final selectedClubId = _selectedClubId;
     switch (_selectedSection) {
       case _AdminSection.players:
         return [
-          _buildScopeCard(scope),
+          AdminScopeCard(scope: scope),
           const SizedBox(height: 12),
-          _buildClubSelector(manageableClubs),
+          AdminClubSelectorCard(
+            clubs: manageableClubs,
+            selectedClubId: selectedClubId,
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedClubId = value;
+              });
+            },
+            imageResolver: ref.read(storageImageResolverProvider),
+          ),
           const SizedBox(height: 12),
-          _buildCreateCard(context, scope, selectedPermission),
+          AdminCreatePlayerCard(
+            formKey: _createFormKey,
+            nameController: _nameController,
+            goalsController: _goalsController,
+            gamesController: _gamesController,
+            sportsAsync: ref.watch(sportsProvider),
+            positionsAsync: _selectedSport == null
+                ? const AsyncValue.data([])
+                : ref.watch(positionsBySportProvider(_selectedSport!)),
+            leaguesAsync: _selectedSport == null
+                ? const AsyncValue.data([])
+                : ref.watch(leaguesBySportProvider(_selectedSport!)),
+            seasonsAsync: ref.watch(seasonsProvider),
+            selectedSport: _selectedSport,
+            selectedPosition: _selectedPosition,
+            selectedLeague: _selectedLeague,
+            selectedSeason: _selectedSeason,
+            selectedImageName: _selectedImageName,
+            canCreate:
+                scope.isGlobalAdmin ||
+                (selectedPermission?.canCreatePlayers ?? false),
+            isSaving: _isSaving,
+            onSportChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedSport = value;
+                _selectedPosition = null;
+                _selectedLeague = null;
+              });
+            },
+            onPositionChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedPosition = value;
+              });
+            },
+            onLeagueChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedLeague = value;
+              });
+            },
+            onSeasonChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedSeason = value;
+              });
+            },
+            onPickImage: _pickImage,
+            onCreatePlayer: _createPlayer,
+          ),
           const SizedBox(height: 16),
-          _buildPlayersSection(context, scope, selectedPermission),
+          AdminPlayersSection(
+            playersAsync: ref.watch(
+              adminPlayersByClubProvider(selectedClubId ?? ''),
+            ),
+            canEdit:
+                scope.isGlobalAdmin || (selectedPermission?.canEditPlayers ?? false),
+            onEditPlayer: (player) => _editPlayer(scope, player),
+          ),
         ];
       case _AdminSection.requests:
         return [
-          _buildScopeCard(scope),
+          AdminScopeCard(scope: scope),
           const SizedBox(height: 12),
-          _buildPendingRequestsSection(context, scope),
+          AdminPendingRequestsSection(
+            scope: scope,
+            selectedClubId: selectedClubId,
+            filterPendingBySelectedClub: _filterPendingBySelectedClub,
+            onFilterChanged: (value) {
+              setState(() {
+                _filterPendingBySelectedClub = value;
+              });
+            },
+            requestsAsync: ref.watch(pendingAdminAccessRequestsProvider),
+            onReviewRequest: (request, approve) => _reviewRequest(
+              scope: scope,
+              request: request,
+              approve: approve,
+            ),
+          ),
           const SizedBox(height: 12),
-          _buildSportRequestSection(context, scope),
+          AdminSportRequestSection(
+            scope: scope,
+            formKey: _sportRequestFormKey,
+            sportIdController: _sportRequestIdController,
+            displayNameController: _sportRequestNameController,
+            messageController: _sportRequestMessageController,
+            isSubmitting: _isSubmittingSportRequest,
+            onSubmit: _submitSportRequest,
+          ),
           if (scope.isGlobalAdmin) ...[
             const SizedBox(height: 12),
-            _buildPendingSportRequestsSection(context),
+            AdminPendingSportRequestsSection(
+              pendingAsync: ref.watch(pendingSportRequestsProvider),
+              onReviewRequest: (request, approve) => _reviewSportRequest(
+                request: request,
+                approve: approve,
+              ),
+            ),
           ],
         ];
       case _AdminSection.roles:
         return [
-          _buildScopeCard(scope),
+          AdminScopeCard(scope: scope),
           const SizedBox(height: 12),
-          _buildClubSelector(manageableClubs),
+          AdminClubSelectorCard(
+            clubs: manageableClubs,
+            selectedClubId: selectedClubId,
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedClubId = value;
+              });
+            },
+            imageResolver: ref.read(storageImageResolverProvider),
+          ),
           const SizedBox(height: 12),
-          _buildRoleManagementSection(context),
+          AdminRoleManagementSection(
+            selectedClubId: selectedClubId,
+            assignmentsAsync: ref.watch(clubAdminRoleAssignmentsProvider),
+            userSearchController: _userSearchController,
+            isUserSearching: _isUserSearching,
+            userSearchResults: _userSearchResults,
+            selectedRoleUserId: _selectedRoleUserId,
+            selectedRoleUserEmail: _selectedRoleUserEmail,
+            roleCanCreatePlayers: _roleCanCreatePlayers,
+            roleCanEditPlayers: _roleCanEditPlayers,
+            onSearchUsers: _searchUsersForRole,
+            onSelectUser: (user) {
+              setState(() {
+                _selectedRoleUserId = user.userId;
+                _selectedRoleUserEmail = user.email;
+              });
+            },
+            onCreatePlayersChanged: (value) {
+              setState(() {
+                _roleCanCreatePlayers = value;
+              });
+            },
+            onEditPlayersChanged: (value) {
+              setState(() {
+                _roleCanEditPlayers = value;
+              });
+            },
+            onAssignRole: _assignClubAdminRole,
+            onRemoveRole: _removeClubAdminRole,
+          ),
         ];
     }
-  }
-
-  Widget _buildScopeCard(AdminScope scope) {
-    final roleLabel = scope.isGlobalAdmin ? 'Global Admin' : 'Vereinsadmin';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.admin_panel_settings_outlined),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '$roleLabel - ${scope.clubs.length} Verein(e) im Zugriff',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClubSelector(List<AdminClubPermission> clubs) {
-    final selectedClubId = _selectedClubId;
-    AdminClubPermission? selectedClub;
-    if (selectedClubId != null) {
-      for (final club in clubs) {
-        if (club.clubId == selectedClubId) {
-          selectedClub = club;
-          break;
-        }
-      }
-    }
-    final imageResolver = ref.watch(storageImageResolverProvider);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: clubs.any((c) => c.clubId == _selectedClubId)
-                  ? _selectedClubId
-                  : (clubs.isNotEmpty ? clubs.first.clubId : null),
-              decoration: const InputDecoration(
-                labelText: 'Verein',
-                prefixIcon: Icon(Icons.shield_outlined),
-              ),
-              items: clubs
-                  .map(
-                    (club) => DropdownMenuItem<String>(
-                      value: club.clubId,
-                      child: Text(club.clubName),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                setState(() {
-                  _selectedClubId = value;
-                });
-              },
-            ),
-            if (selectedClub case final clubForPreview?) ...[
-              const SizedBox(height: 10),
-              FutureBuilder<String>(
-                future: imageResolver.resolveImageUrl(
-                  bucketName: 'club-logos',
-                  objectId: clubForPreview.clubId,
-                  isPublic: true,
-                ),
-                builder: (context, snapshot) {
-                  final logoUrl = snapshot.data ?? '';
-                  return Row(
-                    children: [
-                      if (logoUrl.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.transparent,
-                            backgroundImage: NetworkImage(logoUrl),
-                          ),
-                        ),
-                      Expanded(
-                        child: Text(
-                          clubForPreview.clubName,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPendingRequestsSection(BuildContext context, AdminScope scope) {
-    final requestsAsync = ref.watch(pendingAdminAccessRequestsProvider);
-    final selectedClubId = _selectedClubId;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Admin-Anfragen',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Vereinsadmins koennen nur Anfragen fuer bestehende Vereine genehmigen. '
-              'Anfragen fuer noch nicht angelegte Vereine kann nur der Super-Admin genehmigen und dabei den Verein erstellen.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 10),
-            FilterChip(
-              label: const Text('Nur aktueller Verein'),
-              selected: _filterPendingBySelectedClub,
-              onSelected: (value) {
-                setState(() {
-                  _filterPendingBySelectedClub = value;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            requestsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) =>
-                  Text('Anfragen konnten nicht geladen werden: $error'),
-              data: (requests) {
-                final filtered =
-                    _filterPendingBySelectedClub && selectedClubId != null
-                    ? requests
-                          .where((request) => request.clubId == selectedClubId)
-                          .toList()
-                    : requests;
-
-                if (filtered.isEmpty) {
-                  return const Text('Keine offenen Anfragen.');
-                }
-
-                return Column(
-                  children: filtered.map((request) {
-                    final canApproveMissingClub =
-                        !request.isForMissingClub || scope.isGlobalAdmin;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              request.clubName ?? request.requestedClubName,
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Anfragender User: ${request.requesterUserId}',
-                            ),
-                            if (request.message != null &&
-                                request.message!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text('Nachricht: ${request.message!}'),
-                            ],
-                            if (request.isForMissingClub) ...[
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Verein existiert noch nicht. Nur Super-Admin kann mit Vereinsanlage genehmigen.',
-                                style: TextStyle(color: Colors.orange),
-                              ),
-                            ],
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                FilledButton.icon(
-                                  onPressed: canApproveMissingClub
-                                      ? () => _reviewRequest(
-                                          scope: scope,
-                                          request: request,
-                                          approve: true,
-                                        )
-                                      : null,
-                                  icon: const Icon(Icons.check_circle_outline),
-                                  label: const Text('Genehmigen'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _reviewRequest(
-                                    scope: scope,
-                                    request: request,
-                                    approve: false,
-                                  ),
-                                  icon: const Icon(Icons.cancel_outlined),
-                                  label: const Text('Ablehnen'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSportRequestSection(BuildContext context, AdminScope scope) {
-    final canRequestSport =
-        scope.isGlobalAdmin ||
-        scope.clubs.any((club) => club.canCreatePlayers || club.canEditPlayers);
-
-    if (!canRequestSport) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _sportRequestFormKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Neue Sportart beantragen',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Falls eine Sportart fehlt, kann sie hier beantragt werden. Ein Super-Admin kann sie dann genehmigen.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _sportRequestIdController,
-                validator: _requiredValidator,
-                decoration: const InputDecoration(
-                  labelText: 'Sport-ID (z. B. ice_hockey)',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _sportRequestNameController,
-                validator: _requiredValidator,
-                decoration: const InputDecoration(
-                  labelText: 'Anzeigename (z. B. Ice Hockey)',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _sportRequestMessageController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Begruendung (optional)',
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isSubmittingSportRequest
-                      ? null
-                      : _submitSportRequest,
-                  icon: _isSubmittingSportRequest
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.addchart_outlined),
-                  label: const Text('Sportart beantragen'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPendingSportRequestsSection(BuildContext context) {
-    final pendingAsync = ref.watch(pendingSportRequestsProvider);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Offene Sportart-Anfragen (Super-Admin)',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            pendingAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Text(
-                'Sportart-Anfragen konnten nicht geladen werden: $error',
-              ),
-              data: (requests) {
-                if (requests.isEmpty) {
-                  return const Text('Keine offenen Sportart-Anfragen.');
-                }
-
-                return Column(
-                  children: requests
-                      .map(
-                        (request) => Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${request.requestedDisplayName} (${request.requestedSportId})',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Anfragender User: ${request.requesterUserId}',
-                                ),
-                                if (request.message != null &&
-                                    request.message!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text('Nachricht: ${request.message}'),
-                                ],
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    FilledButton.icon(
-                                      onPressed: () => _reviewSportRequest(
-                                        request: request,
-                                        approve: true,
-                                      ),
-                                      icon: const Icon(
-                                        Icons.check_circle_outline,
-                                      ),
-                                      label: const Text('Genehmigen'),
-                                    ),
-                                    OutlinedButton.icon(
-                                      onPressed: () => _reviewSportRequest(
-                                        request: request,
-                                        approve: false,
-                                      ),
-                                      icon: const Icon(Icons.cancel_outlined),
-                                      label: const Text('Ablehnen'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoleManagementSection(BuildContext context) {
-    final selectedClubId = _selectedClubId;
-    final assignmentsAsync = ref.watch(clubAdminRoleAssignmentsProvider);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Rollenverwaltung (Super-Admin)',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Vereinsadmins suchen und fuer den ausgewaehlten Verein zuweisen oder entfernen.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _userSearchController,
-              decoration: const InputDecoration(
-                labelText: 'User per E-Mail suchen',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                FilledButton.icon(
-                  onPressed: _isUserSearching ? null : _searchUsersForRole,
-                  icon: _isUserSearching
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.person_search_outlined),
-                  label: const Text('User suchen'),
-                ),
-                const SizedBox(width: 8),
-                if (_selectedRoleUserEmail != null)
-                  Expanded(
-                    child: Text(
-                      'Ausgewaehlt: $_selectedRoleUserEmail',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-            ),
-            if (_userSearchResults.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 160,
-                child: ListView.builder(
-                  itemCount: _userSearchResults.length,
-                  itemBuilder: (context, index) {
-                    final user = _userSearchResults[index];
-                    final isSelected = _selectedRoleUserId == user.userId;
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        isSelected ? Icons.check_circle : Icons.person_outline,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                      title: Text(user.email),
-                      subtitle: Text(user.userId),
-                      onTap: () {
-                        setState(() {
-                          _selectedRoleUserId = user.userId;
-                          _selectedRoleUserEmail = user.email;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('Darf erstellen'),
-                  selected: _roleCanCreatePlayers,
-                  onSelected: (value) {
-                    setState(() {
-                      _roleCanCreatePlayers = value;
-                    });
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Darf bearbeiten'),
-                  selected: _roleCanEditPlayers,
-                  onSelected: (value) {
-                    setState(() {
-                      _roleCanEditPlayers = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _isRoleSaving ? null : _assignClubAdminRole,
-                icon: _isRoleSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.admin_panel_settings_outlined),
-                label: const Text('Vereinsadmin zuweisen/aktualisieren'),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Bestehende Zuweisungen',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            assignmentsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) =>
-                  Text('Rollen konnten nicht geladen werden: $error'),
-              data: (assignments) {
-                final scoped = selectedClubId == null
-                    ? assignments
-                    : assignments
-                          .where(
-                            (assignment) => assignment.clubId == selectedClubId,
-                          )
-                          .toList();
-
-                if (scoped.isEmpty) {
-                  return const Text(
-                    'Keine Rollen fuer den aktuell ausgewaehlten Verein vorhanden.',
-                  );
-                }
-
-                return Column(
-                  children: scoped
-                      .map(
-                        (assignment) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(assignment.email ?? assignment.userId),
-                          subtitle: Text(
-                            '${assignment.clubName}\ncreate=${assignment.canCreatePlayers} edit=${assignment.canEditPlayers}',
-                          ),
-                          isThreeLine: true,
-                          trailing: IconButton(
-                            onPressed: () => _removeClubAdminRole(assignment),
-                            icon: const Icon(Icons.remove_circle_outline),
-                            tooltip: 'Rolle entziehen',
-                          ),
-                        ),
-                      )
-                      .toList(),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCreateCard(
-    BuildContext context,
-    AdminScope scope,
-    AdminClubPermission? selectedPermission,
-  ) {
-    final canCreate =
-        scope.isGlobalAdmin || (selectedPermission?.canCreatePlayers ?? false);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _createFormKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Spieler anlegen',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _buildSmallField(
-                    _nameController,
-                    'Name',
-                    validator: _requiredValidator,
-                  ),
-                  _buildSmallField(
-                    _goalsController,
-                    'Tore',
-                    keyboardType: TextInputType.number,
-                    validator: _nonNegativeIntValidator,
-                  ),
-                  _buildSmallField(
-                    _gamesController,
-                    'Spiele',
-                    keyboardType: TextInputType.number,
-                    validator: _nonNegativeIntValidator,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ref
-                  .watch(sportsProvider)
-                  .when(
-                    loading: () => const LinearProgressIndicator(minHeight: 2),
-                    error: (error, _) =>
-                        Text('Sportarten konnten nicht geladen werden: $error'),
-                    data: (sports) {
-                      final selectedSport = _selectedSport;
-                      final isSelectedValid = sports.any(
-                        (sport) => sport.id == selectedSport,
-                      );
-
-                      if (!isSelectedValid && sports.isNotEmpty) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedSport = sports.first.id;
-                          });
-                        });
-                      }
-
-                      return DropdownButtonFormField<String>(
-                        initialValue: isSelectedValid ? selectedSport : null,
-                        decoration: const InputDecoration(
-                          labelText: 'Sport',
-                          prefixIcon: Icon(Icons.sports),
-                        ),
-                        items: sports
-                            .map(
-                              (sport) => DropdownMenuItem<String>(
-                                value: sport.id,
-                                child: Text(sport.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedSport = value;
-                            _selectedPosition = null;
-                            _selectedLeague = null;
-                          });
-                        },
-                      );
-                    },
-                  ),
-              const SizedBox(height: 12),
-              if (_selectedSport != null)
-                ref
-                    .watch(positionsBySportProvider(_selectedSport!))
-                    .when(
-                      loading: () =>
-                          const LinearProgressIndicator(minHeight: 2),
-                      error: (error, _) => Text(
-                        'Positionen konnten nicht geladen werden: $error',
-                      ),
-                      data: (positions) {
-                        final isSelectedValid = positions.any(
-                          (position) => position.id == _selectedPosition,
-                        );
-
-                        if (!isSelectedValid && positions.isNotEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedPosition = positions.first.id;
-                            });
-                          });
-                        }
-
-                        return DropdownButtonFormField<String>(
-                          initialValue: isSelectedValid
-                              ? _selectedPosition
-                              : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Position',
-                            prefixIcon: Icon(Icons.place_outlined),
-                          ),
-                          items: positions
-                              .map(
-                                (position) => DropdownMenuItem<String>(
-                                  value: position.id,
-                                  child: Text(position.displayName),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedPosition = value;
-                            });
-                          },
-                        );
-                      },
-                    )
-              else
-                const Text(
-                  'Bitte zuerst eine Sportart auswaehlen.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              const SizedBox(height: 12),
-              if (_selectedSport != null)
-                ref
-                    .watch(leaguesBySportProvider(_selectedSport!))
-                    .when(
-                      loading: () =>
-                          const LinearProgressIndicator(minHeight: 2),
-                      error: (error, _) =>
-                          Text('Ligen konnten nicht geladen werden: $error'),
-                      data: (leagues) {
-                        final isSelectedValid = leagues.any(
-                          (league) => league.id == _selectedLeague,
-                        );
-
-                        if (!isSelectedValid && leagues.isNotEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedLeague = leagues.first.id;
-                            });
-                          });
-                        }
-
-                        return DropdownButtonFormField<String>(
-                          initialValue: isSelectedValid
-                              ? _selectedLeague
-                              : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Liga',
-                            prefixIcon: Icon(Icons.emoji_events_outlined),
-                          ),
-                          items: leagues
-                              .map(
-                                (league) => DropdownMenuItem<String>(
-                                  value: league.id,
-                                  child: Text(league.displayName),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedLeague = value;
-                            });
-                          },
-                        );
-                      },
-                    )
-              else
-                const Text(
-                  'Bitte zuerst eine Sportart auswaehlen.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              const SizedBox(height: 12),
-              ref
-                  .watch(seasonsProvider)
-                  .when(
-                    loading: () => const LinearProgressIndicator(minHeight: 2),
-                    error: (error, _) =>
-                        Text('Saisons konnten nicht geladen werden: $error'),
-                    data: (seasons) {
-                      final selectedSeason = _selectedSeason;
-                      final isSelectedValid = seasons.any(
-                        (season) => season.id == selectedSeason,
-                      );
-
-                      if (!isSelectedValid && seasons.isNotEmpty) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedSeason = seasons.first.id;
-                          });
-                        });
-                      }
-
-                      return DropdownButtonFormField<String>(
-                        initialValue: isSelectedValid ? selectedSeason : null,
-                        decoration: const InputDecoration(
-                          labelText: 'Saison',
-                          prefixIcon: Icon(Icons.calendar_month_outlined),
-                        ),
-                        items: seasons
-                            .map(
-                              (season) => DropdownMenuItem<String>(
-                                value: season.id,
-                                child: Text(
-                                  season.isActive
-                                      ? '${season.displayName} (Aktiv)'
-                                      : season.displayName,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedSeason = value;
-                          });
-                        },
-                      );
-                    },
-                  ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: canCreate ? _pickImage : null,
-                    icon: const Icon(Icons.image_outlined),
-                    label: const Text('Bild waehlen'),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _selectedImageName ?? 'Kein Bild ausgewaehlt',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: canCreate && !_isSaving ? _createPlayer : null,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.add_circle_outline),
-                  label: const Text('Spieler speichern'),
-                ),
-              ),
-              if (!canCreate) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  'Fuer diesen Verein hast du keine Rechte zum Erstellen von Spielern.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayersSection(
-    BuildContext context,
-    AdminScope scope,
-    AdminClubPermission? selectedPermission,
-  ) {
-    final clubId = _selectedClubId;
-    if (clubId == null) {
-      return const SizedBox.shrink();
-    }
-
-    final canEdit =
-        scope.isGlobalAdmin || (selectedPermission?.canEditPlayers ?? false);
-    final playersAsync = ref.watch(adminPlayersByClubProvider(clubId));
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Spieler in diesem Verein',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            playersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) =>
-                  Text('Spieler konnten nicht geladen werden: $error'),
-              data: (players) {
-                if (players.isEmpty) {
-                  return const Text('Noch keine Spieler vorhanden.');
-                }
-
-                return Column(
-                  children: players
-                      .map(
-                        (player) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundImage: player.imageUrl.isNotEmpty
-                                ? NetworkImage(player.imageUrl)
-                                : null,
-                            child: player.imageUrl.isEmpty
-                                ? const Icon(Icons.person_outline)
-                                : null,
-                          ),
-                          title: Text(player.name),
-                          subtitle: Text(
-                            '${player.position} | ${player.sport} | ${player.league} | ${player.season}\nTore: ${player.goals} | Spiele: ${player.games}',
-                          ),
-                          isThreeLine: true,
-                          trailing: IconButton(
-                            onPressed: canEdit
-                                ? () => _editPlayer(scope, player)
-                                : null,
-                            icon: const Icon(Icons.edit_outlined),
-                            tooltip: 'Spieler bearbeiten',
-                          ),
-                        ),
-                      )
-                      .toList(),
-                );
-              },
-            ),
-            if (!canEdit) ...[
-              const SizedBox(height: 10),
-              const Text(
-                'Du kannst Spieler dieses Vereins anzeigen, aber nicht bearbeiten.',
-                style: TextStyle(color: Colors.orange),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSmallField(
-    TextEditingController controller,
-    String label, {
-    String? hintText,
-    String? Function(String?)? validator,
-    TextInputType? keyboardType,
-  }) {
-    return SizedBox(
-      width: 260,
-      child: TextFormField(
-        controller: controller,
-        validator: validator,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(labelText: label, hintText: hintText),
-      ),
-    );
-  }
-
-  String? _requiredValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Pflichtfeld';
-    }
-    return null;
-  }
-
-  String? _nonNegativeIntValidator(String? value) {
-    final parsed = int.tryParse((value ?? '').trim());
-    if (parsed == null || parsed < 0) {
-      return 'Bitte eine Zahl >= 0 eingeben';
-    }
-    return null;
   }
 
   int _parseNonNegative(String value) {
@@ -1420,41 +590,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required SportRequest request,
     required bool approve,
   }) async {
-    final noteController = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(approve ? 'Sportart genehmigen' : 'Sportart ablehnen'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${request.requestedDisplayName} (${request.requestedSportId})',
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: noteController,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Notiz (optional)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(approve ? 'Genehmigen' : 'Ablehnen'),
-          ),
-        ],
-      ),
+    final dialogResult = await showSportRequestReviewDialog(
+      context,
+      request,
+      approve,
     );
 
-    if (confirmed != true || !mounted) {
-      noteController.dispose();
+    if (dialogResult == null || !mounted) {
       return;
     }
 
@@ -1464,7 +606,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           .reviewSportRequest(
             requestId: request.id,
             approve: approve,
-            decisionNote: noteController.text.trim(),
+            decisionNote: dialogResult.decisionNote,
           );
 
       if (!mounted) {
@@ -1494,8 +636,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           SnackBar(content: Text('Aktion fehlgeschlagen: $error')),
         );
       }
-    } finally {
-      noteController.dispose();
     }
   }
 
@@ -1552,10 +692,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       return;
     }
 
-    setState(() {
-      _isRoleSaving = true;
-    });
-
     try {
       await ref
           .read(adminRepoProvider)
@@ -1566,16 +702,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             canEditPlayers: _roleCanEditPlayers,
           );
 
-      if (!mounted) {
-        return;
+      if (mounted) {
+        ref.invalidate(clubAdminRoleAssignmentsProvider);
+        ref.invalidate(adminScopeProvider);
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Rolle gespeichert.')));
       }
-
-      ref.invalidate(clubAdminRoleAssignmentsProvider);
-      ref.invalidate(adminScopeProvider);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Rolle gespeichert.')));
     } on PostgrestException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1594,35 +728,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRoleSaving = false;
-        });
-      }
     }
   }
 
   Future<void> _removeClubAdminRole(ClubAdminRoleAssignment assignment) async {
-    final shouldRemove = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rolle entziehen?'),
-        content: Text(
-          'Soll ${assignment.email ?? assignment.userId} als Vereinsadmin fuer ${assignment.clubName} entfernt werden?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Entziehen'),
-          ),
-        ],
-      ),
-    );
+    final shouldRemove = await showRemoveClubAdminRoleDialog(context, assignment);
 
     if (shouldRemove != true || !mounted) {
       return;
@@ -1665,80 +775,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required AdminAccessRequest request,
     required bool approve,
   }) async {
-    final noteController = TextEditingController();
-    var createClubIfMissing = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(approve ? 'Anfrage genehmigen' : 'Anfrage ablehnen'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Verein: ${request.clubName ?? request.requestedClubName}',
-                  ),
-                  const SizedBox(height: 8),
-                  if (request.isForMissingClub)
-                    Text(
-                      scope.isGlobalAdmin
-                          ? 'Dieser Verein existiert noch nicht. Du kannst ihn beim Genehmigen direkt anlegen.'
-                          : 'Dieser Verein existiert noch nicht. Das darf nur ein Super-Admin genehmigen.',
-                      style: TextStyle(
-                        color: scope.isGlobalAdmin
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  if (approve &&
-                      request.isForMissingClub &&
-                      scope.isGlobalAdmin) ...[
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: createClubIfMissing,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          createClubIfMissing = value ?? false;
-                        });
-                      },
-                      title: const Text(
-                        'Verein bei Genehmigung automatisch anlegen',
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: noteController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Notiz (optional)',
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Abbrechen'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(approve ? 'Genehmigen' : 'Ablehnen'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    final dialogResult = await showAdminAccessRequestReviewDialog(
+      context,
+      scope,
+      request,
+      approve,
     );
 
-    if (confirmed != true || !mounted) {
-      noteController.dispose();
+    if (dialogResult == null || !mounted) {
       return;
     }
 
@@ -1748,8 +792,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           .reviewAdminAccessRequest(
             requestId: request.id,
             approve: approve,
-            decisionNote: noteController.text.trim(),
-            createClubIfMissing: createClubIfMissing,
+            decisionNote: dialogResult.decisionNote,
+            createClubIfMissing: dialogResult.createClubIfMissing,
           );
 
       if (!mounted) {
@@ -1778,421 +822,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           SnackBar(content: Text('Aktion fehlgeschlagen: $error')),
         );
       }
-    } finally {
-      noteController.dispose();
     }
   }
 
   Future<void> _editPlayer(AdminScope scope, AdminPlayer player) async {
-    final nameController = TextEditingController(text: player.name);
-    final goalsController = TextEditingController(
-      text: player.goals.toString(),
-    );
-    final gamesController = TextEditingController(
-      text: player.games.toString(),
-    );
-    var selectedSport = player.sport;
-    String? selectedPosition = player.position;
-    String? selectedLeague = player.league;
-    String? selectedSeason = player.season;
-    var selectedClubId = player.clubId;
-    Uint8List? selectedBytes;
-    String? selectedImageName;
-
-    Future<void> pickEditImage(StateSetter setModalState) async {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        withData: true,
-        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
-      );
-
-      if (result == null ||
-          result.files.isEmpty ||
-          result.files.first.bytes == null) {
-        return;
-      }
-
-      setModalState(() {
-        selectedBytes = result.files.first.bytes;
-        selectedImageName = result.files.first.name;
-      });
-    }
-
-    final formKey = GlobalKey<FormState>();
-    final repo = ref.read(adminRepoProvider);
-    final sports = await repo.listSports();
-    final leagueEntries = await Future.wait(
-      sports.map(
-        (sport) async =>
-            MapEntry(sport.id, await repo.listLeagues(sportId: sport.id)),
-      ),
-    );
-    final seasons = await repo.listSeasons();
-    if (!mounted) {
-      return;
-    }
-
-    final positionEntries = await Future.wait(
-      sports.map(
-        (sport) async =>
-            MapEntry(sport.id, await repo.listPositions(sportId: sport.id)),
-      ),
-    );
-    if (!mounted) {
-      return;
-    }
-
-    final positionsBySport = <String, List<PositionOption>>{
-      for (final entry in positionEntries) entry.key: entry.value,
-    };
-    final leaguesBySport = <String, List<LeagueOption>>{
-      for (final entry in leagueEntries) entry.key: entry.value,
-    };
-
-    if (!sports.any((sport) => sport.id == selectedSport) &&
-        sports.isNotEmpty) {
-      selectedSport = sports.first.id;
-    }
-
-    final initialPositions = positionsBySport[selectedSport] ?? const [];
-    if (!initialPositions.any((position) => position.id == selectedPosition) &&
-        initialPositions.isNotEmpty) {
-      selectedPosition = initialPositions.first.id;
-    }
-
-    final initialLeagues = leaguesBySport[selectedSport] ?? const [];
-    if (!initialLeagues.any((league) => league.id == selectedLeague) &&
-        initialLeagues.isNotEmpty) {
-      selectedLeague = initialLeagues.first.id;
-    }
-
-    if (!seasons.any((season) => season.id == selectedSeason) &&
-        seasons.isNotEmpty) {
-      selectedSeason = seasons.first.id;
-    }
-
-    final saved = await showModalBottomSheet<bool>(
+    await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Spieler bearbeiten',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: nameController,
-                        validator: _requiredValidator,
-                        decoration: const InputDecoration(labelText: 'Name'),
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue: sports.any((s) => s.id == selectedSport)
-                            ? selectedSport
-                            : (sports.isNotEmpty ? sports.first.id : null),
-                        decoration: const InputDecoration(labelText: 'Sport'),
-                        items: sports
-                            .map(
-                              (sport) => DropdownMenuItem<String>(
-                                value: sport.id,
-                                child: Text(sport.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setModalState(() {
-                            selectedSport = value;
-                            final positionsForSport =
-                                positionsBySport[value] ?? const [];
-                            final leaguesForSport =
-                                leaguesBySport[value] ?? const [];
-                            if (positionsForSport.any(
-                              (position) => position.id == selectedPosition,
-                            )) {
-                            } else {
-                              selectedPosition = positionsForSport.isEmpty
-                                  ? null
-                                  : positionsForSport.first.id;
-                            }
-
-                            if (leaguesForSport.any(
-                              (league) => league.id == selectedLeague,
-                            )) {
-                            } else {
-                              selectedLeague = leaguesForSport.isEmpty
-                                  ? null
-                                  : leaguesForSport.first.id;
-                            }
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Builder(
-                        builder: (context) {
-                          final positionsForSport =
-                              positionsBySport[selectedSport] ?? const [];
-
-                          if (!positionsForSport.any(
-                            (position) => position.id == selectedPosition,
-                          )) {
-                            selectedPosition = positionsForSport.isEmpty
-                                ? null
-                                : positionsForSport.first.id;
-                          }
-
-                          return DropdownButtonFormField<String>(
-                            initialValue:
-                                positionsForSport.any(
-                                  (p) => p.id == selectedPosition,
-                                )
-                                ? selectedPosition
-                                : (positionsForSport.isNotEmpty
-                                      ? positionsForSport.first.id
-                                      : null),
-                            decoration: const InputDecoration(
-                              labelText: 'Position',
-                            ),
-                            validator: (value) =>
-                                value == null ? 'Pflichtfeld' : null,
-                            items: positionsForSport
-                                .map(
-                                  (position) => DropdownMenuItem<String>(
-                                    value: position.id,
-                                    child: Text(position.displayName),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setModalState(() {
-                                selectedPosition = value;
-                              });
-                            },
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                            scope.clubs.any((c) => c.clubId == selectedClubId)
-                            ? selectedClubId
-                            : null,
-                        decoration: const InputDecoration(labelText: 'Verein'),
-                        items: scope.clubs
-                            .where(
-                              (club) =>
-                                  club.canEditPlayers || scope.isGlobalAdmin,
-                            )
-                            .map(
-                              (club) => DropdownMenuItem<String>(
-                                value: club.clubId,
-                                child: Text(club.clubName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setModalState(() {
-                            selectedClubId = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Builder(
-                        builder: (context) {
-                          final leaguesForSport =
-                              leaguesBySport[selectedSport] ?? const [];
-
-                          if (!leaguesForSport.any(
-                            (league) => league.id == selectedLeague,
-                          )) {
-                            selectedLeague = leaguesForSport.isEmpty
-                                ? null
-                                : leaguesForSport.first.id;
-                          }
-
-                          return DropdownButtonFormField<String>(
-                            initialValue:
-                                leaguesForSport.any(
-                                  (l) => l.id == selectedLeague,
-                                )
-                                ? selectedLeague
-                                : (leaguesForSport.isNotEmpty
-                                      ? leaguesForSport.first.id
-                                      : null),
-                            decoration: const InputDecoration(
-                              labelText: 'Liga',
-                            ),
-                            validator: (value) =>
-                                value == null ? 'Pflichtfeld' : null,
-                            items: leaguesForSport
-                                .map(
-                                  (league) => DropdownMenuItem<String>(
-                                    value: league.id,
-                                    child: Text(league.displayName),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              setModalState(() {
-                                selectedLeague = value;
-                              });
-                            },
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue: seasons.any((s) => s.id == selectedSeason)
-                            ? selectedSeason
-                            : (seasons.isNotEmpty ? seasons.first.id : null),
-                        decoration: const InputDecoration(labelText: 'Saison'),
-                        validator: (value) =>
-                            value == null ? 'Pflichtfeld' : null,
-                        items: seasons
-                            .map(
-                              (season) => DropdownMenuItem<String>(
-                                value: season.id,
-                                child: Text(
-                                  season.isActive
-                                      ? '${season.displayName} (Aktiv)'
-                                      : season.displayName,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setModalState(() {
-                            selectedSeason = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: goalsController,
-                        validator: _nonNegativeIntValidator,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Tore'),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: gamesController,
-                        validator: _nonNegativeIntValidator,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Spiele'),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () => pickEditImage(setModalState),
-                            icon: const Icon(Icons.image_outlined),
-                            label: const Text('Neues Bild'),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              selectedImageName ?? 'Kein neues Bild',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () {
-                            if (!(formKey.currentState?.validate() ?? false)) {
-                              return;
-                            }
-                            Navigator.of(context).pop(true);
-                          },
-                          child: const Text('Aenderungen speichern'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
+        return AdminEditPlayerSheet(scope: scope, player: player);
       },
     );
-
-    if (saved != true || !mounted) {
-      nameController.dispose();
-      goalsController.dispose();
-      gamesController.dispose();
-      return;
-    }
-
-    try {
-      await ref
-          .read(adminRepoProvider)
-          .updatePlayer(
-            playerId: player.id,
-            name: nameController.text.trim(),
-            position: selectedPosition ?? player.position,
-            clubId: selectedClubId,
-            sport: selectedSport,
-            league: selectedLeague ?? player.league,
-            season: selectedSeason ?? player.season,
-            goals: _parseNonNegative(goalsController.text),
-            games: _parseNonNegative(gamesController.text),
-            imageBytes: selectedBytes,
-            imageExtension: _extensionFromFileName(selectedImageName),
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
-      if (selectedClubId != _selectedClubId) {
-        ref.invalidate(adminPlayersByClubProvider(selectedClubId));
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Spieler aktualisiert.')));
-    } on PostgrestException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update fehlgeschlagen: ${error.message}')),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update fehlgeschlagen: $error')),
-        );
-      }
-    } finally {
-      nameController.dispose();
-      goalsController.dispose();
-      gamesController.dispose();
-    }
   }
 
   String? _extensionFromFileName(String? fileName) {
