@@ -6,8 +6,9 @@ import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
-import 'package:cardx/features/admin/widgets/admin_edit_player_sheet.dart';
+import 'package:cardx/features/admin/application/admin_dashboard_actions.dart';
 import 'package:cardx/features/admin/widgets/admin_action_dialogs.dart';
+import 'package:cardx/features/admin/widgets/admin_edit_player_sheet.dart';
 import 'package:cardx/features/admin/widgets/admin_dashboard_sections.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  final _actions = const AdminDashboardActions();
   final _createFormKey = GlobalKey<FormState>();
   final _sportRequestFormKey = GlobalKey<FormState>();
   final _userSearchController = TextEditingController();
@@ -205,19 +207,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Future<void> _refreshAdminData() async {
-    ref.invalidate(adminScopeProvider);
-    ref.invalidate(pendingAdminAccessRequestsProvider);
-    ref.invalidate(pendingSportRequestsProvider);
-    ref.invalidate(clubAdminRoleAssignmentsProvider);
-    ref.invalidate(sportsProvider);
-    ref.invalidate(seasonsProvider);
-    if (_selectedSport != null) {
-      ref.invalidate(positionsBySportProvider(_selectedSport!));
-      ref.invalidate(leaguesBySportProvider(_selectedSport!));
-    }
-    if (_selectedClubId != null) {
-      ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
-    }
+    await _actions.refreshAdminData(
+      ref: ref,
+      selectedSport: _selectedSport,
+      selectedClubId: _selectedClubId,
+    );
   }
 
   String _sectionLabel(_AdminSection section) {
@@ -479,8 +473,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     });
 
     try {
-      final repo = ref.read(adminRepoProvider);
-      await repo.createPlayer(
+      await _actions.createPlayer(
+        ref: ref,
         name: _nameController.text.trim(),
         position: selectedPosition,
         clubId: clubId,
@@ -543,13 +537,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     try {
       final rawId = _sportRequestIdController.text.trim();
-      await ref
-          .read(adminRepoProvider)
-          .submitSportRequest(
-            sportId: rawId,
-            displayName: _sportRequestNameController.text.trim(),
-            message: _sportRequestMessageController.text.trim(),
-          );
+      await _actions.submitSportRequest(
+        ref: ref,
+        sportId: rawId,
+        displayName: _sportRequestNameController.text.trim(),
+        message: _sportRequestMessageController.text.trim(),
+      );
 
       if (!mounted) {
         return;
@@ -590,24 +583,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required SportRequest request,
     required bool approve,
   }) async {
-    final dialogResult = await showSportRequestReviewDialog(
-      context,
-      request,
-      approve,
-    );
-
-    if (dialogResult == null || !mounted) {
-      return;
-    }
-
     try {
-      await ref
-          .read(adminRepoProvider)
-          .reviewSportRequest(
-            requestId: request.id,
-            approve: approve,
-            decisionNote: dialogResult.decisionNote,
-          );
+      await _actions.reviewSportRequest(
+        context: context,
+        ref: ref,
+        request: request,
+        approve: approve,
+      );
 
       if (!mounted) {
         return;
@@ -645,9 +627,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     });
 
     try {
-      final users = await ref
-          .read(adminRepoProvider)
-          .searchUsersForAdmin(_userSearchController.text.trim());
+      final users = await _actions.searchUsersForRole(
+        ref: ref,
+        query: _userSearchController.text.trim(),
+      );
 
       if (!mounted) {
         return;
@@ -739,12 +722,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     try {
-      await ref
-          .read(adminRepoProvider)
-          .removeClubAdminRole(
-            userId: assignment.userId,
-            clubId: assignment.clubId,
-          );
+      await _actions.removeClubAdminRole(
+        ref: ref,
+        userId: assignment.userId,
+        clubId: assignment.clubId,
+      );
 
       if (!mounted) {
         return;
@@ -775,26 +757,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     required AdminAccessRequest request,
     required bool approve,
   }) async {
-    final dialogResult = await showAdminAccessRequestReviewDialog(
-      context,
-      scope,
-      request,
-      approve,
-    );
-
-    if (dialogResult == null || !mounted) {
-      return;
-    }
-
     try {
-      await ref
-          .read(adminRepoProvider)
-          .reviewAdminAccessRequest(
-            requestId: request.id,
-            approve: approve,
-            decisionNote: dialogResult.decisionNote,
-            createClubIfMissing: dialogResult.createClubIfMissing,
-          );
+      await _actions.reviewAdminAccessRequest(
+        context: context,
+        ref: ref,
+        scope: scope,
+        request: request,
+        approve: approve,
+      );
 
       if (!mounted) {
         return;
