@@ -20,8 +20,6 @@ class AdminDashboardActions {
     required String sport,
     required String league,
     required String season,
-    required int goals,
-    required int games,
     Uint8List? imageBytes,
     String? imageExtension,
   }) {
@@ -34,8 +32,8 @@ class AdminDashboardActions {
           sport: sport,
           league: league,
           season: season,
-          goals: goals,
-          games: games,
+          goals: 0,
+          games: 0,
           imageBytes: imageBytes,
           imageExtension: imageExtension,
         );
@@ -145,6 +143,7 @@ class AdminDashboardActions {
 
   Future<void> refreshAdminData({
     required WidgetRef ref,
+    required String? selectedSeason,
     required String? selectedSport,
     required String? selectedClubId,
   }) async {
@@ -153,10 +152,24 @@ class AdminDashboardActions {
     ref.invalidate(pendingSportRequestsProvider);
     ref.invalidate(clubAdminRoleAssignmentsProvider);
     ref.invalidate(sportsProvider);
+    if (selectedClubId != null) {
+      ref.invalidate(clubSportsProvider(selectedClubId));
+    }
     ref.invalidate(seasonsProvider);
     if (selectedSport != null) {
       ref.invalidate(positionsBySportProvider(selectedSport));
       ref.invalidate(leaguesBySportProvider(selectedSport));
+      if (selectedClubId != null) {
+        ref.invalidate(
+          clubLeaguesProvider(
+            (
+              clubId: selectedClubId,
+              sportId: selectedSport,
+              seasonId: selectedSeason ?? '',
+            ),
+          ),
+        );
+      }
     }
     if (selectedClubId != null) {
       ref.invalidate(adminPlayersByClubProvider(selectedClubId));

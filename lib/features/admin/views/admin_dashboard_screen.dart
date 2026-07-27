@@ -30,8 +30,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _sportRequestFormKey = GlobalKey<FormState>();
   final _userSearchController = TextEditingController();
   final _nameController = TextEditingController();
-  final _goalsController = TextEditingController(text: '0');
-  final _gamesController = TextEditingController(text: '0');
   final _sportRequestIdController = TextEditingController();
   final _sportRequestNameController = TextEditingController();
   final _sportRequestMessageController = TextEditingController();
@@ -58,8 +56,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   void dispose() {
     _userSearchController.dispose();
     _nameController.dispose();
-    _goalsController.dispose();
-    _gamesController.dispose();
     _sportRequestIdController.dispose();
     _sportRequestNameController.dispose();
     _sportRequestMessageController.dispose();
@@ -86,8 +82,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildBody(BuildContext context, AdminScope scope) {
-    final sportsAsync = ref.watch(sportsProvider);
-    final seasonsAsync = ref.watch(seasonsProvider);
     final currentUser = Supabase.instance.client.auth.currentUser;
 
     if (!scope.canManagePlayers) {
@@ -124,6 +118,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     _selectedClubId ??= manageableClubs.first.clubId;
+    final selectedClubId = _selectedClubId;
+    final sportsAsync = selectedClubId == null
+        ? const AsyncValue<List<SportOption>>.data([])
+        : ref.watch(clubSportsProvider(selectedClubId));
+    final seasonsAsync = ref.watch(seasonsProvider);
     final selectedPermission = scope.permissionForClub(_selectedClubId ?? '');
 
     sportsAsync.whenData((sports) {
@@ -236,6 +235,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Future<void> _refreshAdminData() async {
     await _actions.refreshAdminData(
       ref: ref,
+      selectedSeason: _selectedSeason,
       selectedSport: _selectedSport,
       selectedClubId: _selectedClubId,
     );
@@ -273,6 +273,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               }
               setState(() {
                 _selectedClubId = value;
+                _selectedSport = null;
+                _selectedPosition = null;
+                _selectedLeague = null;
               });
             },
             imageResolver: ref.read(storageImageResolverProvider),
@@ -281,15 +284,23 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           AdminCreatePlayerCard(
             formKey: _createFormKey,
             nameController: _nameController,
-            goalsController: _goalsController,
-            gamesController: _gamesController,
-            sportsAsync: ref.watch(sportsProvider),
+            sportsAsync: selectedClubId == null
+                ? const AsyncValue.data([])
+                : ref.watch(clubSportsProvider(selectedClubId)),
             positionsAsync: _selectedSport == null
                 ? const AsyncValue.data([])
                 : ref.watch(positionsBySportProvider(_selectedSport!)),
-            leaguesAsync: _selectedSport == null
+            leaguesAsync: _selectedSport == null || selectedClubId == null
                 ? const AsyncValue.data([])
-                : ref.watch(leaguesBySportProvider(_selectedSport!)),
+                : ref.watch(
+                    clubLeaguesProvider(
+                      (
+                        clubId: selectedClubId,
+                        sportId: _selectedSport!,
+                        seasonId: _selectedSeason ?? '',
+                      ),
+                    ),
+                  ),
             seasonsAsync: ref.watch(seasonsProvider),
             selectedSport: _selectedSport,
             selectedPosition: _selectedPosition,
@@ -332,6 +343,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               }
               setState(() {
                 _selectedSeason = value;
+                _selectedLeague = null;
               });
             },
             onPickImage: _pickImage,
@@ -440,14 +452,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
   }
 
-  int _parseNonNegative(String value) {
-    final parsed = int.tryParse(value.trim()) ?? 0;
-    if (parsed < 0) {
-      return 0;
-    }
-    return parsed;
-  }
-
   Future<void> _pickImage() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -488,7 +492,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Bitte Verein, Sport, Position, Liga und Saison auswaehlen.',
+            'Bitte Verein, Sportart, Liga, Position und Saison auswählen.',
           ),
         ),
       );
@@ -508,8 +512,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         sport: selectedSport,
         league: selectedLeague,
         season: selectedSeason,
-        goals: _parseNonNegative(_goalsController.text),
-        games: _parseNonNegative(_gamesController.text),
         imageBytes: _selectedImageBytes,
         imageExtension: _extensionFromFileName(_selectedImageName),
       );
@@ -519,8 +521,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       }
 
       _nameController.clear();
-      _goalsController.text = '0';
-      _gamesController.text = '0';
       setState(() {
         _selectedPosition = null;
         _selectedLeague = null;

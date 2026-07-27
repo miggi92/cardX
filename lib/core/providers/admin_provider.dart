@@ -54,6 +54,14 @@ final sportsProvider = FutureProvider<List<SportOption>>((ref) async {
   return ref.watch(adminRepoProvider).listSports();
 });
 
+final clubSportsProvider =
+    FutureProvider.family<List<SportOption>, String>((ref, clubId) async {
+      if (clubId.trim().isEmpty) {
+        return const [];
+      }
+      return ref.watch(adminRepoProvider).listClubSports(clubId: clubId);
+    });
+
 final positionsBySportProvider =
     FutureProvider.family<List<PositionOption>, String>((ref, sportId) async {
       if (sportId.trim().isEmpty) {
@@ -68,6 +76,26 @@ final leaguesBySportProvider =
         return const [];
       }
       return ref.watch(adminRepoProvider).listLeagues(sportId: sportId);
+    });
+
+typedef ClubLeagueFilter = ({String clubId, String sportId, String seasonId});
+
+final clubLeaguesProvider =
+    FutureProvider.family<List<LeagueOption>, ClubLeagueFilter>((
+      ref,
+      filter,
+    ) async {
+      if (filter.clubId.trim().isEmpty || filter.sportId.trim().isEmpty) {
+        return const [];
+      }
+
+      return ref
+          .watch(adminRepoProvider)
+          .listClubLeagues(
+            clubId: filter.clubId,
+            sportId: filter.sportId,
+            seasonId: filter.seasonId,
+          );
     });
 
 final seasonsProvider = FutureProvider<List<SeasonOption>>((ref) async {

@@ -644,8 +644,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
     super.key,
     required this.formKey,
     required this.nameController,
-    required this.goalsController,
-    required this.gamesController,
     required this.sportsAsync,
     required this.positionsAsync,
     required this.leaguesAsync,
@@ -667,8 +665,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
 
   final GlobalKey<FormState> formKey;
   final TextEditingController nameController;
-  final TextEditingController goalsController;
-  final TextEditingController gamesController;
   final AsyncValue<List<SportOption>> sportsAsync;
   final AsyncValue<List<PositionOption>> positionsAsync;
   final AsyncValue<List<LeagueOption>> leaguesAsync;
@@ -711,18 +707,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
                     label: 'Name',
                     validator: _requiredValidator,
                   ),
-                  _buildSmallField(
-                    controller: goalsController,
-                    label: 'Tore',
-                    keyboardType: TextInputType.number,
-                    validator: _nonNegativeIntValidator,
-                  ),
-                  _buildSmallField(
-                    controller: gamesController,
-                    label: 'Spiele',
-                    keyboardType: TextInputType.number,
-                    validator: _nonNegativeIntValidator,
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -755,6 +739,40 @@ class AdminCreatePlayerCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               if (selectedSport != null)
+                leaguesAsync.when(
+                  loading: () => const LinearProgressIndicator(minHeight: 2),
+                  error: (error, _) =>
+                      Text('Ligen konnten nicht geladen werden: $error'),
+                  data: (leagues) {
+                    final isSelectedValid = leagues.any(
+                      (league) => league.id == selectedLeague,
+                    );
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: isSelectedValid ? selectedLeague : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Liga',
+                        prefixIcon: Icon(Icons.emoji_events_outlined),
+                      ),
+                      items: leagues
+                          .map(
+                            (league) => DropdownMenuItem<String>(
+                              value: league.id,
+                              child: Text(league.displayName),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: onLeagueChanged,
+                    );
+                  },
+                )
+              else
+                const Text(
+                  'Bitte zuerst eine Sportart auswählen.',
+                  style: TextStyle(color: Colors.orange),
+                ),
+              const SizedBox(height: 12),
+              if (selectedSport != null)
                 positionsAsync.when(
                   loading: () => const LinearProgressIndicator(minHeight: 2),
                   error: (error, _) => Text(
@@ -780,40 +798,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
                           )
                           .toList(),
                       onChanged: onPositionChanged,
-                    );
-                  },
-                )
-              else
-                const Text(
-                  'Bitte zuerst eine Sportart auswählen.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              const SizedBox(height: 12),
-              if (selectedSport != null)
-                leaguesAsync.when(
-                  loading: () => const LinearProgressIndicator(minHeight: 2),
-                  error: (error, _) =>
-                      Text('Ligen konnten nicht geladen werden: $error'),
-                  data: (leagues) {
-                    final isSelectedValid = leagues.any(
-                      (league) => league.id == selectedLeague,
-                    );
-
-                    return DropdownButtonFormField<String>(
-                      initialValue: isSelectedValid ? selectedLeague : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Liga',
-                        prefixIcon: Icon(Icons.emoji_events_outlined),
-                      ),
-                      items: leagues
-                          .map(
-                            (league) => DropdownMenuItem<String>(
-                              value: league.id,
-                              child: Text(league.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onLeagueChanged,
                     );
                   },
                 )
@@ -925,13 +909,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
     return null;
   }
 
-  String? _nonNegativeIntValidator(String? value) {
-    final parsed = int.tryParse((value ?? '').trim());
-    if (parsed == null || parsed < 0) {
-      return 'Bitte eine Zahl >= 0 eingeben';
-    }
-    return null;
-  }
 }
 
 class AdminPlayersSection extends StatelessWidget {

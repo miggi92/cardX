@@ -106,6 +106,29 @@ class SupabaseAdminRepository {
         .toList();
   }
 
+  Future<List<SportOption>> listClubSports({required String clubId}) async {
+    if (clubId.trim().isEmpty) {
+      return const [];
+    }
+
+    final response = await _supabase.rpc(
+      'list_club_sports',
+      params: {'p_club_id': clubId},
+    );
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => SportOption(
+            id: row['id'] as String? ?? '',
+            displayName:
+                row['display_name'] as String? ?? row['id'] as String? ?? '',
+          ),
+        )
+        .where((sport) => sport.id.isNotEmpty)
+        .toList();
+  }
+
   Future<List<PositionOption>> listPositions({required String sportId}) async {
     final normalized = sportId.trim().toLowerCase();
     if (normalized.isEmpty) {
@@ -169,6 +192,63 @@ class SupabaseAdminRepository {
         )
         .where((league) => league.id.isNotEmpty)
         .toList();
+  }
+
+  Future<List<LeagueOption>> listClubLeagues({
+    required String clubId,
+    required String sportId,
+    required String seasonId,
+  }) async {
+    final normalizedSport = sportId.trim().toLowerCase();
+    if (clubId.trim().isEmpty || normalizedSport.isEmpty) {
+      return const [];
+    }
+
+    final response = await _supabase.rpc(
+      'list_club_leagues',
+      params: {
+        'p_club_id': clubId,
+        'p_sport': normalizedSport,
+        'p_season': seasonId.trim().isEmpty ? null : seasonId.trim(),
+      },
+    );
+
+    return (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(
+          (row) => LeagueOption(
+            id: row['id'] as String? ?? '',
+            displayName:
+                row['display_name'] as String? ?? row['id'] as String? ?? '',
+          ),
+        )
+        .where((league) => league.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> upsertClubSport({
+    required String clubId,
+    required String sportId,
+    bool isActive = true,
+  }) async {
+    await _supabase.rpc(
+      'upsert_club_sport',
+      params: {
+        'p_club_id': clubId,
+        'p_sport_id': sportId,
+        'p_is_active': isActive,
+      },
+    );
+  }
+
+  Future<void> removeClubSport({
+    required String clubId,
+    required String sportId,
+  }) async {
+    await _supabase.rpc(
+      'remove_club_sport',
+      params: {'p_club_id': clubId, 'p_sport_id': sportId},
+    );
   }
 
   Future<String> submitSportRequest({
