@@ -68,6 +68,8 @@ void main() {
     );
 
     await tester.pump();
+    await tester.tap(find.text('Anfragen'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Neue Sportart beantragen'), findsOneWidget);
 
@@ -119,6 +121,8 @@ void main() {
     );
 
     await tester.pump();
+    await tester.tap(find.text('Anfragen'));
+    await tester.pumpAndSettle();
 
     final sportRequestForm = find.ancestor(
       of: find.text('Neue Sportart beantragen'),

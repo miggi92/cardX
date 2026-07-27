@@ -46,6 +46,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   bool _filterPendingBySelectedClub = true;
   bool _roleCanCreatePlayers = true;
   bool _roleCanEditPlayers = true;
+  _AdminSection _selectedSection = _AdminSection.players;
   List<AdminUserOption> _userSearchResults = const [];
 
   @override
@@ -145,25 +146,108 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       }
     });
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(adminScopeProvider);
-        ref.invalidate(pendingAdminAccessRequestsProvider);
-        ref.invalidate(pendingSportRequestsProvider);
-        ref.invalidate(clubAdminRoleAssignmentsProvider);
-        ref.invalidate(sportsProvider);
-        ref.invalidate(seasonsProvider);
-        if (_selectedSport != null) {
-          ref.invalidate(positionsBySportProvider(_selectedSport!));
-          ref.invalidate(leaguesBySportProvider(_selectedSport!));
-        }
-        if (_selectedClubId != null) {
-          ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
-        }
-      },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
+    final availableSections = <_AdminSection>[
+      _AdminSection.players,
+      _AdminSection.requests,
+      if (scope.isGlobalAdmin) _AdminSection.roles,
+    ];
+
+    if (!availableSections.contains(_selectedSection)) {
+      _selectedSection = availableSections.first;
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final section in availableSections)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(_sectionLabel(section)),
+                      selected: _selectedSection == section,
+                      onSelected: (selected) {
+                        if (!selected) {
+                          return;
+                        }
+                        setState(() {
+                          _selectedSection = section;
+                        });
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refreshAdminData,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: _buildSectionContent(
+                context: context,
+                scope: scope,
+                manageableClubs: manageableClubs,
+                selectedPermission: selectedPermission,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _refreshAdminData() async {
+    ref.invalidate(adminScopeProvider);
+    ref.invalidate(pendingAdminAccessRequestsProvider);
+    ref.invalidate(pendingSportRequestsProvider);
+    ref.invalidate(clubAdminRoleAssignmentsProvider);
+    ref.invalidate(sportsProvider);
+    ref.invalidate(seasonsProvider);
+    if (_selectedSport != null) {
+      ref.invalidate(positionsBySportProvider(_selectedSport!));
+      ref.invalidate(leaguesBySportProvider(_selectedSport!));
+    }
+    if (_selectedClubId != null) {
+      ref.invalidate(adminPlayersByClubProvider(_selectedClubId!));
+    }
+  }
+
+  String _sectionLabel(_AdminSection section) {
+    switch (section) {
+      case _AdminSection.players:
+        return 'Spielerverwaltung';
+      case _AdminSection.requests:
+        return 'Anfragen';
+      case _AdminSection.roles:
+        return 'Rollen';
+    }
+  }
+
+  List<Widget> _buildSectionContent({
+    required BuildContext context,
+    required AdminScope scope,
+    required List<AdminClubPermission> manageableClubs,
+    required AdminClubPermission? selectedPermission,
+  }) {
+    switch (_selectedSection) {
+      case _AdminSection.players:
+        return [
+          _buildScopeCard(scope),
+          const SizedBox(height: 12),
+          _buildClubSelector(manageableClubs),
+          const SizedBox(height: 12),
+          _buildCreateCard(context, scope, selectedPermission),
+          const SizedBox(height: 16),
+          _buildPlayersSection(context, scope, selectedPermission),
+        ];
+      case _AdminSection.requests:
+        return [
           _buildScopeCard(scope),
           const SizedBox(height: 12),
           _buildPendingRequestsSection(context, scope),
@@ -173,19 +257,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             const SizedBox(height: 12),
             _buildPendingSportRequestsSection(context),
           ],
-          if (scope.isGlobalAdmin) ...[
-            const SizedBox(height: 12),
-            _buildRoleManagementSection(context),
-          ],
+        ];
+      case _AdminSection.roles:
+        return [
+          _buildScopeCard(scope),
           const SizedBox(height: 12),
           _buildClubSelector(manageableClubs),
           const SizedBox(height: 12),
-          _buildCreateCard(context, scope, selectedPermission),
-          const SizedBox(height: 16),
-          _buildPlayersSection(context, scope, selectedPermission),
-        ],
-      ),
-    );
+          _buildRoleManagementSection(context),
+        ];
+    }
   }
 
   Widget _buildScopeCard(AdminScope scope) {
@@ -830,18 +911,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: canCreate
-                            ? (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() {
-                                  _selectedSport = value;
-                                  _selectedPosition = null;
-                                  _selectedLeague = null;
-                                });
-                              }
-                            : null,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedSport = value;
+                            _selectedPosition = null;
+                            _selectedLeague = null;
+                          });
+                        },
                       );
                     },
                   ),
@@ -887,16 +966,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 ),
                               )
                               .toList(),
-                          onChanged: canCreate
-                              ? (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _selectedPosition = value;
-                                  });
-                                }
-                              : null,
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedPosition = value;
+                            });
+                          },
                         );
                       },
                     )
@@ -946,16 +1023,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 ),
                               )
                               .toList(),
-                          onChanged: canCreate
-                              ? (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _selectedLeague = value;
-                                  });
-                                }
-                              : null,
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedLeague = value;
+                            });
+                          },
                         );
                       },
                     )
@@ -1006,16 +1081,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: canCreate
-                            ? (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() {
-                                  _selectedSeason = value;
-                                });
-                              }
-                            : null,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedSeason = value;
+                          });
+                        },
                       );
                     },
                   ),
@@ -2129,3 +2202,5 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return fileName.split('.').last;
   }
 }
+
+enum _AdminSection { players, requests, roles }
