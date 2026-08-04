@@ -100,105 +100,117 @@ class CardWidget extends StatelessWidget {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.5),
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 35,
-                    height: 35,
-                    decoration: BoxDecoration(
-                      color: brand.cardTextPrimary.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
+              if (card.rarity == CardRarity.legendary)
+                const _LegendaryCardShimmer(),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 35,
+                          height: 35,
+                          decoration: BoxDecoration(
+                            color: brand.cardTextPrimary.withValues(
+                              alpha: 0.16,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: _buildRemoteImage(
+                            url: card.teamLogoUrl,
+                            fit: BoxFit.contain,
+                            fallback: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final iconSize = _responsiveIconSize(
+                                  constraints,
+                                  factor: 0.7,
+                                  min: 10,
+                                  max: 20,
+                                );
+                                return Icon(
+                                  Icons.shield,
+                                  color: brand.cardTextSecondary,
+                                  size: iconSize,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        Text(
+                          card.position,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: brand.cardTextSecondary,
+                          ),
+                        ),
+                      ],
                     ),
-                    padding: const EdgeInsets.all(4),
-                    child: _buildRemoteImage(
-                      url: card.teamLogoUrl,
-                      fit: BoxFit.contain,
-                      fallback: LayoutBuilder(
+                    Expanded(
+                      child: LayoutBuilder(
                         builder: (context, constraints) {
                           final iconSize = _responsiveIconSize(
                             constraints,
-                            factor: 0.7,
-                            min: 10,
-                            max: 20,
+                            factor: 0.55,
+                            min: 34,
+                            max: 96,
                           );
-                          return Icon(
-                            Icons.shield,
-                            color: brand.cardTextSecondary,
-                            size: iconSize,
+
+                          return Center(
+                            child: _buildRemoteImage(
+                              url: card.playerImageUrl,
+                              fit: BoxFit.contain,
+                              fallback: Icon(
+                                Icons.person,
+                                color: brand.cardTextSecondary,
+                                size: iconSize,
+                              ),
+                            ),
                           );
                         },
                       ),
                     ),
-                  ),
-                  Text(
-                    card.position,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: brand.cardTextSecondary,
+                    Center(
+                      child: Text(
+                        card.playerName,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: brand.cardTextPrimary,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final iconSize = _responsiveIconSize(
-                      constraints,
-                      factor: 0.55,
-                      min: 34,
-                      max: 96,
-                    );
-
-                    return Center(
-                      child: _buildRemoteImage(
-                        url: card.playerImageUrl,
-                        fit: BoxFit.contain,
-                        fallback: Icon(
-                          Icons.person,
-                          color: brand.cardTextSecondary,
-                          size: iconSize,
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          card.teamName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: brand.cardTextSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              Center(
-                child: Text(
-                  card.playerName,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: brand.cardTextPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 2.0),
-                  child: Text(
-                    card.teamName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: brand.cardTextSecondary,
-                      fontWeight: FontWeight.w600,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    Divider(
+                      color: brand.cardTextSecondary.withValues(alpha: 0.45),
+                      thickness: 1,
+                    ),
+                    _buildStatsGrid(theme, brand),
+                  ],
                 ),
               ),
-              Divider(
-                color: brand.cardTextSecondary.withValues(alpha: 0.45),
-                thickness: 1,
-              ),
-              _buildStatsGrid(theme, brand),
             ],
           ),
         ),
@@ -248,6 +260,78 @@ class CardWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LegendaryCardShimmer extends StatefulWidget {
+  const _LegendaryCardShimmer();
+
+  @override
+  State<_LegendaryCardShimmer> createState() => _LegendaryCardShimmerState();
+}
+
+class _LegendaryCardShimmerState extends State<_LegendaryCardShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final travelDistance = constraints.maxWidth + constraints.maxHeight;
+
+          return AnimatedBuilder(
+            key: const ValueKey('legendary-card-shimmer'),
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                  -travelDistance / 2 + travelDistance * _controller.value,
+                  0,
+                ),
+                child: child,
+              );
+            },
+            child: Transform.rotate(
+              angle: -0.35,
+              child: Center(
+                child: Container(
+                  width: constraints.maxWidth * 0.24,
+                  height: constraints.maxHeight * 1.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: 0),
+                        Colors.white.withValues(alpha: 0.12),
+                        Colors.white.withValues(alpha: 0.5),
+                        Colors.white.withValues(alpha: 0.12),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
