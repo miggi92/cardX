@@ -20,6 +20,8 @@ Diese Datei ist der zentrale Einstieg fuer KI-Assistenten in diesem Repo.
 - Keine stillen Schema-Annahmen: bei DB-Aenderungen immer RPC/Policy-Folgen pruefen.
 - Bei async UI-Flows `mounted` beruecksichtigen, bevor `BuildContext` genutzt wird.
 - Keine `select('*')` Abfragen in neuen Repository-Queries.
+- Spieler nicht pro Mannschaft duplizieren: `player_pool` ist die Identitaet, Mannschaften werden ueber `player_team_memberships` zugeordnet.
+- Externe Sportdaten nur serverseitig synchronisieren; unbekannte oder `N.N.`-Spieler nicht automatisch anlegen.
 
 ## Definition of Done
 

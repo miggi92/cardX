@@ -3,6 +3,7 @@ import 'package:cardx/core/repositories/supabase_admin_repository.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
+import 'package:cardx/features/admin/models/admin_team.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,6 +31,15 @@ final adminPlayersByClubProvider =
       return ref.watch(adminRepoProvider).getPlayersForClub(clubId: clubId);
     });
 
+final adminTeamsByClubProvider = FutureProvider.family<List<AdminTeam>, String>(
+  (ref, clubId) async {
+    if (clubId.trim().isEmpty) {
+      return const [];
+    }
+    return ref.watch(adminRepoProvider).listClubTeams(clubId: clubId);
+  },
+);
+
 final allClubsProvider = FutureProvider<List<Map<String, String>>>((ref) async {
   return ref.watch(adminRepoProvider).getAllClubs();
 });
@@ -54,13 +64,15 @@ final sportsProvider = FutureProvider<List<SportOption>>((ref) async {
   return ref.watch(adminRepoProvider).listSports();
 });
 
-final clubSportsProvider =
-    FutureProvider.family<List<SportOption>, String>((ref, clubId) async {
-      if (clubId.trim().isEmpty) {
-        return const [];
-      }
-      return ref.watch(adminRepoProvider).listClubSports(clubId: clubId);
-    });
+final clubSportsProvider = FutureProvider.family<List<SportOption>, String>((
+  ref,
+  clubId,
+) async {
+  if (clubId.trim().isEmpty) {
+    return const [];
+  }
+  return ref.watch(adminRepoProvider).listClubSports(clubId: clubId);
+});
 
 final positionsBySportProvider =
     FutureProvider.family<List<PositionOption>, String>((ref, sportId) async {

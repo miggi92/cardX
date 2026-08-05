@@ -191,6 +191,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionClose => 'Schließen';
 
   @override
+  String get cardStatsTitle => 'Mannschaften & Statistiken';
+
+  @override
+  String get cardStatsGoals => 'Tore';
+
+  @override
+  String get cardStatsGames => 'Spiele';
+
+  @override
+  String get cardStatsPenaltyGoals => '7-Meter-Tore';
+
+  @override
+  String get cardStatsPenaltyMissed => '7-Meter verworfen';
+
+  @override
+  String get cardStatsPenalties => 'Zeitstrafen';
+
+  @override
+  String get cardStatsYellowCards => 'Gelbe Karten';
+
+  @override
+  String get cardStatsRedCards => 'Rote Karten';
+
+  @override
+  String get cardStatsBlueCards => 'Blaue Karten';
+
+  @override
+  String get cardStatsMale => 'männlich';
+
+  @override
+  String get cardStatsFemale => 'weiblich';
+
+  @override
+  String get cardStatsMixed => 'gemischt';
+
+  @override
   String get collectionSellAllDuplicatesTitle => 'Alle Duplikate verkaufen?';
 
   @override

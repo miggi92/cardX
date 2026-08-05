@@ -1,6 +1,7 @@
 import 'package:cardx/core/theme/app_theme.dart';
 import 'package:cardx/features/cards/models/card_model.dart';
 import 'package:cardx/features/cards/models/card_rarity.dart';
+import 'package:cardx/features/cards/models/player_stats.dart';
 import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
 import 'package:cardx/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -124,6 +125,131 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
     return uppercase ? value.toUpperCase() : value;
   }
 
+  String _statLabel(AppLocalizations l10n, String key) {
+    return switch (key) {
+      'goals' => l10n.cardStatsGoals,
+      'games' || 'gamesPlayed' => l10n.cardStatsGames,
+      'penaltyGoals' => l10n.cardStatsPenaltyGoals,
+      'penaltyMissed' => l10n.cardStatsPenaltyMissed,
+      'penalties' => l10n.cardStatsPenalties,
+      'yellowCards' => l10n.cardStatsYellowCards,
+      'redCards' => l10n.cardStatsRedCards,
+      'blueCards' => l10n.cardStatsBlueCards,
+      _ =>
+        key
+            .replaceAllMapped(
+              RegExp(r'([a-z])([A-Z])'),
+              (match) => '${match.group(1)} ${match.group(2)}',
+            )
+            .replaceFirstMapped(
+              RegExp(r'^.'),
+              (match) => match.group(0)!.toUpperCase(),
+            ),
+    };
+  }
+
+  String _genderLabel(AppLocalizations l10n, String gender) {
+    return switch (gender) {
+      'male' => l10n.cardStatsMale,
+      'female' => l10n.cardStatsFemale,
+      'mixed' => l10n.cardStatsMixed,
+      _ => gender,
+    };
+  }
+
+  Future<void> _showStatsSheet(
+    BuildContext context,
+    List<PlayerTeamStats> teams,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final brand = theme.extension<AppBrandTheme>()!;
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            itemCount: teams.length + 1,
+            separatorBuilder: (_, index) => index == 0
+                ? const SizedBox(height: 8)
+                : Divider(color: brand.surfaceBorder, height: 28),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Text(
+                  l10n.cardStatsTitle,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }
+
+              final team = teams[index - 1];
+              final contextParts = [
+                team.season,
+                team.ageGroup,
+                _genderLabel(l10n, team.gender),
+                team.league,
+              ].where((part) => part.isNotEmpty).toList();
+              final values = team.values.entries.toList()
+                ..sort(
+                  (a, b) => _statLabel(
+                    l10n,
+                    a.key,
+                  ).compareTo(_statLabel(l10n, b.key)),
+                );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    team.teamName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (contextParts.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      contextParts.join(' · '),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: values
+                        .map(
+                          (entry) => Chip(
+                            avatar: Text(
+                              entry.value.toString(),
+                              style: theme.textTheme.labelLarge,
+                            ),
+                            label: Text(_statLabel(l10n, entry.key)),
+                            side: BorderSide(color: brand.surfaceBorder),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -168,6 +294,13 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (selectedCard.stats.teams.isNotEmpty)
+                      IconButton(
+                        onPressed: () =>
+                            _showStatsSheet(context, selectedCard.stats.teams),
+                        icon: const Icon(Icons.analytics_outlined),
+                        tooltip: l10n.cardStatsTitle,
+                      ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),

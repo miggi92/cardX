@@ -4,10 +4,12 @@ import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
+import 'package:cardx/features/admin/models/admin_team.dart';
 import 'package:cardx/features/admin/application/admin_dashboard_actions.dart';
 import 'package:cardx/features/admin/widgets/admin_action_dialogs.dart';
 import 'package:cardx/features/admin/widgets/admin_edit_player_sheet.dart';
 import 'package:cardx/features/admin/widgets/admin_dashboard_sections.dart';
+import 'package:cardx/features/admin/widgets/admin_teams_section.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -80,7 +82,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildBody(BuildContext context, AdminScope scope) {
-    final currentUser = Supabase.instance.client.auth.currentUser;
+    final currentUser = _currentUserForDebug();
 
     if (!scope.canManagePlayers) {
       return const Center(
@@ -151,6 +153,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     final availableSections = <_AdminSection>[
       _AdminSection.players,
+      _AdminSection.teams,
       _AdminSection.requests,
       if (scope.isGlobalAdmin) _AdminSection.roles,
     ];
@@ -188,25 +191,24 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 for (final section in availableSections)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(_sectionLabel(section)),
-                      selected: _selectedSection == section,
-                      onSelected: (selected) {
-                        if (!selected) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedSection = section;
-                        });
-                      },
-                    ),
+                  ChoiceChip(
+                    label: Text(_sectionLabel(section)),
+                    selected: _selectedSection == section,
+                    onSelected: (selected) {
+                      if (!selected) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedSection = section;
+                      });
+                    },
                   ),
               ],
             ),
@@ -230,6 +232,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
+  User? _currentUserForDebug() {
+    if (!kDebugMode) {
+      return null;
+    }
+    try {
+      return Supabase.instance.client.auth.currentUser;
+    } on AssertionError {
+      return null;
+    }
+  }
+
   Future<void> _refreshAdminData() async {
     await _actions.refreshAdminData(
       ref: ref,
@@ -237,12 +250,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       selectedSport: _selectedSport,
       selectedClubId: _selectedClubId,
     );
+    final clubId = _selectedClubId;
+    if (clubId != null) {
+      ref.invalidate(adminTeamsByClubProvider(clubId));
+    }
   }
 
   String _sectionLabel(_AdminSection section) {
     switch (section) {
       case _AdminSection.players:
         return 'Spielerverwaltung';
+      case _AdminSection.teams:
+        return 'Mannschaften';
       case _AdminSection.requests:
         return 'Anfragen';
       case _AdminSection.roles:
@@ -291,13 +310,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             leaguesAsync: _selectedSport == null || selectedClubId == null
                 ? const AsyncValue.data([])
                 : ref.watch(
-                    clubLeaguesProvider(
-                      (
-                        clubId: selectedClubId,
-                        sportId: _selectedSport!,
-                        seasonId: _selectedSeason ?? '',
-                      ),
-                    ),
+                    clubLeaguesProvider((
+                      clubId: selectedClubId,
+                      sportId: _selectedSport!,
+                      seasonId: _selectedSeason ?? '',
+                    )),
                   ),
             seasonsAsync: ref.watch(seasonsProvider),
             selectedSport: _selectedSport,
@@ -353,13 +370,54 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               adminPlayersByClubProvider(selectedClubId ?? ''),
             ),
             canEdit:
-                scope.isGlobalAdmin || (selectedPermission?.canEditPlayers ?? false),
+                scope.isGlobalAdmin ||
+                (selectedPermission?.canEditPlayers ?? false),
             onEditPlayer: (player) => _editPlayer(scope, player),
+          ),
+        ];
+      case _AdminSection.teams:
+        return [
+          AdminScopeCard(scope: scope),
+          const SizedBox(height: 12),
+          AdminClubSelectorCard(
+            clubs: manageableClubs,
+            selectedClubId: selectedClubId,
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedClubId = value;
+              });
+            },
+            imageResolver: ref.read(storageImageResolverProvider),
+          ),
+          const SizedBox(height: 16),
+          AdminTeamsSection(
+            teamsAsync: ref.watch(
+              adminTeamsByClubProvider(selectedClubId ?? ''),
+            ),
+            canEdit:
+                scope.isGlobalAdmin ||
+                (selectedPermission?.canEditPlayers ?? false),
+            onAdd: () => _showTeamEditor(),
+            onEdit: _showTeamEditor,
+            onSync: _syncTeam,
           ),
         ];
       case _AdminSection.requests:
         return [
           AdminScopeCard(scope: scope),
+          const SizedBox(height: 12),
+          AdminSportRequestSection(
+            scope: scope,
+            formKey: _sportRequestFormKey,
+            sportIdController: _sportRequestIdController,
+            displayNameController: _sportRequestNameController,
+            messageController: _sportRequestMessageController,
+            isSubmitting: _isSubmittingSportRequest,
+            onSubmit: _submitSportRequest,
+          ),
           const SizedBox(height: 12),
           AdminPendingRequestsSection(
             scope: scope,
@@ -377,24 +435,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               approve: approve,
             ),
           ),
-          const SizedBox(height: 12),
-          AdminSportRequestSection(
-            scope: scope,
-            formKey: _sportRequestFormKey,
-            sportIdController: _sportRequestIdController,
-            displayNameController: _sportRequestNameController,
-            messageController: _sportRequestMessageController,
-            isSubmitting: _isSubmittingSportRequest,
-            onSubmit: _submitSportRequest,
-          ),
           if (scope.isGlobalAdmin) ...[
             const SizedBox(height: 12),
             AdminPendingSportRequestsSection(
               pendingAsync: ref.watch(pendingSportRequestsProvider),
-              onReviewRequest: (request, approve) => _reviewSportRequest(
-                request: request,
-                approve: approve,
-              ),
+              onReviewRequest: (request, approve) =>
+                  _reviewSportRequest(request: request, approve: approve),
             ),
           ],
         ];
@@ -447,6 +493,100 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             onRemoveRole: _removeClubAdminRole,
           ),
         ];
+    }
+  }
+
+  Future<void> _showTeamEditor([AdminTeam? team]) async {
+    final clubId = _selectedClubId;
+    if (clubId == null) {
+      return;
+    }
+
+    final repository = ref.read(adminRepoProvider);
+    final results = await Future.wait([
+      repository.listClubSports(clubId: clubId),
+      repository.listSeasons(),
+    ]);
+    if (!mounted) {
+      return;
+    }
+
+    final sports = results[0] as List<SportOption>;
+    final seasons = results[1] as List<SeasonOption>;
+    if (sports.isEmpty || seasons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Für den Verein fehlen Sportarten oder Saisons.'),
+        ),
+      );
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AdminTeamEditorDialog(
+        team: team,
+        sports: sports,
+        seasons: seasons,
+        loadLeagues: (sportId, seasonId) => repository.listClubLeagues(
+          clubId: clubId,
+          sportId: sportId,
+          seasonId: seasonId,
+        ),
+        onSave:
+            ({
+              required sportId,
+              required seasonId,
+              required name,
+              required leagueId,
+              required ageGroup,
+              required gender,
+              required externalTeamId,
+              required syncEnabled,
+            }) => repository.saveClubTeam(
+              teamId: team?.id,
+              clubId: clubId,
+              sportId: sportId,
+              seasonId: seasonId,
+              name: name,
+              leagueId: leagueId,
+              ageGroup: ageGroup,
+              gender: gender,
+              externalTeamId: externalTeamId,
+              syncEnabled: syncEnabled,
+            ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    ref.invalidate(adminTeamsByClubProvider(clubId));
+  }
+
+  Future<void> _syncTeam(AdminTeam team) async {
+    try {
+      final result = await ref.read(adminRepoProvider).syncClubTeam(team.id);
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(adminTeamsByClubProvider(team.clubId));
+      final unmatched = result.unmatchedNames.isEmpty
+          ? ''
+          : ' Nicht zugeordnet: ${result.unmatchedNames.join(', ')}.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${result.matched} Spieler abgeglichen, ${result.ignored} ignoriert.$unmatched',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Abgleich fehlgeschlagen: $error')),
+        );
+      }
     }
   }
 
@@ -740,7 +880,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Future<void> _removeClubAdminRole(ClubAdminRoleAssignment assignment) async {
-    final shouldRemove = await showRemoveClubAdminRoleDialog(context, assignment);
+    final shouldRemove = await showRemoveClubAdminRoleDialog(
+      context,
+      assignment,
+    );
 
     if (shouldRemove != true || !mounted) {
       return;
@@ -838,4 +981,4 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 }
 
-enum _AdminSection { players, requests, roles }
+enum _AdminSection { players, teams, requests, roles }

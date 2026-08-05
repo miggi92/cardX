@@ -16,34 +16,12 @@ class SupabaseShopRepository {
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
 
-  PlayerStats _readPlayerStats(dynamic rawStats) {
-    if (rawStats is Map<String, dynamic>) {
-      return PlayerStats(
-        goals: (rawStats['goals'] as num?)?.toInt() ?? 0,
-        games: (rawStats['games'] as num?)?.toInt() ?? 0,
-      );
-    }
-
-    if (rawStats is List && rawStats.isNotEmpty && rawStats.first is Map) {
-      final first = rawStats.first as Map;
-      return PlayerStats(
-        goals: (first['goals'] as num?)?.toInt() ?? 0,
-        games: (first['games'] as num?)?.toInt() ?? 0,
-      );
-    }
-
-    return const PlayerStats(goals: 0, games: 0);
-  }
-
   PlayerStats _resolvePlayerStats(Map<String, dynamic> player) {
-    final nestedStats = _readPlayerStats(player['player_stats']);
-    if (nestedStats.goals != 0 || nestedStats.games != 0) {
-      return nestedStats;
-    }
-
-    return PlayerStats(
-      goals: (player['goals'] as num?)?.toInt() ?? 0,
-      games: (player['games'] as num?)?.toInt() ?? 0,
+    return PlayerStats.fromSupabase(
+      legacyStats:
+          player['player_stats'] ??
+          {'goals': player['goals'], 'games': player['games']},
+      memberships: player['player_team_memberships'],
     );
   }
 
@@ -127,7 +105,7 @@ class SupabaseShopRepository {
     String filterValue,
   ) async {
     const playerPoolSelect =
-        'id, name, position, league, sport, season, player_stats(goals, games), clubs!inner(id, name)';
+        'id, name, position, league, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs!inner(id, name)';
 
     if (type == PackType.club) {
       return await _supabase
@@ -155,7 +133,7 @@ class SupabaseShopRepository {
     return await _supabase
         .from('player_pool')
         .select(
-          'id, name, position, league, sport, season, player_stats(goals, games), clubs(id, name)',
+          'id, name, position, league, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs(id, name)',
         );
   }
 
@@ -241,6 +219,21 @@ class SupabaseShopRepository {
         .map((player) => '${player['id']}')
         .toSet();
 
+    final membershipsByPlayerId = <String, List<dynamic>>{};
+    if (playerIds.isNotEmpty) {
+      final memberships = await _supabase
+          .from('player_team_memberships')
+          .select(
+            'player_id, is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)',
+          )
+          .inFilter('player_id', playerIds.toList());
+      for (final membership in memberships) {
+        membershipsByPlayerId
+            .putIfAbsent('${membership['player_id']}', () => [])
+            .add(membership);
+      }
+    }
+
     await Future.wait(
       clubIds.map((clubId) async {
         clubLogoById[clubId] = await _imageResolver.resolveImageUrl(
@@ -266,6 +259,8 @@ class SupabaseShopRepository {
     for (final player in availablePlayers) {
       final club = player['clubs'] as Map<String, dynamic>;
       final rarity = CardRarity.values.byName(player['rarity'] as String);
+      player['player_team_memberships'] ??=
+          membershipsByPlayerId['${player['id']}'];
 
       pulledCards.add(
         CardModel(

@@ -24,6 +24,8 @@
 - Epic-Karten in `CardWidget` nutzen einen animierten Sternenglitzer-Effekt.
 - Rare-Karten in `CardWidget` nutzen einen animierten Blitz-Effekt.
 - Admin UI strikt role-gated rendern.
+- Mannschaftspflege liegt als eigene Admin-Sektion vor; Sport, Saison, Liga, Altersklasse, Geschlecht und externe Team-ID werden dort verwaltet.
+- Zusaetzliche saisonale Teamstatistiken erscheinen im Kartendetail als scrollbares Bottom Sheet; die Kartenvorderseite bleibt kompakt.
 
 ## Checkliste vor Merge
 

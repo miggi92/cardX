@@ -18,6 +18,8 @@
 
 - Coins/Rewards: `profiles.coins`, `profiles.last_free_pack`
 - Karten/Pool: `user_cards`, `player_pool`, `player_stats`
+- Mannschaften: `club_season_teams`, `player_team_memberships`
+- Externe Sportdaten: `player_external_identities`, `player_team_stats`
 - Taxonomien: `sports`, `positions`, `leagues`, `seasons`
 - Admin: Rollen + Requests via RPC-Workflow
 
@@ -27,3 +29,12 @@
 - Query-Performance und Index-Nutzung beruecksichtigt
 - Fehlerpfade (null/leer/missing assets) getestet
 - Bei RPC/Schema/Repository-Aenderung: `AGENT.md` und `BACKEND.md` aktualisiert
+
+## Mannschaften und externe Statistiken
+
+- `player_pool` ist die bildtragende Spieleridentitaet; ein Spieler wird nicht pro Mannschaft dupliziert.
+- `player_team_memberships` bildet Mehrfachzuordnungen zu saisonalen Mannschaften ab.
+- Externe IDs werden mit Provider in `player_external_identities` gespeichert.
+- Sportartspezifische Werte liegen als JSON-Objekt in `player_team_stats.stats`; gemeinsame Kartenwerte bleiben in `player_stats` kompatibel.
+- Handball-Lineups werden ueber die JWT-geschuetzte Edge Function `sync-team-lineup` geladen und durch `sync_team_lineup` geschrieben.
+- Platzhalter wie `N.N.` werden beim Sync ignoriert. Unbekannte Namen werden gemeldet und nicht automatisch als neue Spieler angelegt.

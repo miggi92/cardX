@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
 import 'package:cardx/features/admin/models/admin_role_assignment.dart';
 import 'package:cardx/features/admin/models/admin_sport.dart';
+import 'package:cardx/features/admin/models/admin_team.dart';
 import 'package:cardx/core/providers/storage_image_provider.dart';
 import 'package:cardx/features/admin/models/admin_scope.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -248,6 +249,101 @@ class SupabaseAdminRepository {
     await _supabase.rpc(
       'remove_club_sport',
       params: {'p_club_id': clubId, 'p_sport_id': sportId},
+    );
+  }
+
+  Future<List<AdminTeam>> listClubTeams({required String clubId}) async {
+    if (clubId.trim().isEmpty) {
+      return const [];
+    }
+
+    final response = await _supabase
+        .from('club_season_teams')
+        .select(
+          'id, club_id, sport_id, season_id, team_name, league_id, age_group, gender, external_provider, external_team_id, sync_enabled, last_synced_at',
+        )
+        .eq('club_id', clubId)
+        .order('team_name');
+
+    return response
+        .map(
+          (row) => AdminTeam(
+            id: '${row['id']}',
+            clubId: '${row['club_id']}',
+            sportId: row['sport_id'] as String? ?? '',
+            seasonId: row['season_id'] as String? ?? '',
+            name: row['team_name'] as String? ?? '',
+            leagueId: row['league_id'] as String? ?? '',
+            ageGroup: row['age_group'] as String? ?? '',
+            gender: row['gender'] as String? ?? 'mixed',
+            externalProvider: row['external_provider'] as String?,
+            externalTeamId: row['external_team_id'] as String?,
+            syncEnabled: row['sync_enabled'] == true,
+            lastSyncedAt: DateTime.tryParse(
+              row['last_synced_at'] as String? ?? '',
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> saveClubTeam({
+    String? teamId,
+    required String clubId,
+    required String sportId,
+    required String seasonId,
+    required String name,
+    required String leagueId,
+    required String ageGroup,
+    required String gender,
+    String? externalTeamId,
+    required bool syncEnabled,
+  }) async {
+    final normalizedExternalId = externalTeamId?.trim();
+    final values = <String, dynamic>{
+      'club_id': clubId,
+      'sport_id': sportId,
+      'season_id': seasonId,
+      'team_name': name.trim(),
+      'league_id': leagueId,
+      'age_group': ageGroup.trim(),
+      'gender': gender,
+      'external_provider': normalizedExternalId?.isNotEmpty == true
+          ? 'handball-checks'
+          : null,
+      'external_team_id': normalizedExternalId?.isNotEmpty == true
+          ? normalizedExternalId
+          : null,
+      'sync_enabled': syncEnabled && normalizedExternalId?.isNotEmpty == true,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    if (teamId == null) {
+      await _supabase.from('club_season_teams').insert(values);
+      return;
+    }
+    await _supabase.from('club_season_teams').update(values).eq('id', teamId);
+  }
+
+  Future<TeamSyncResult> syncClubTeam(String teamId) async {
+    final response = await _supabase.functions.invoke(
+      'sync-team-lineup',
+      body: {'teamId': teamId},
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw StateError('Mannschaft konnte nicht synchronisiert werden.');
+    }
+
+    final data = response.data as Map<String, dynamic>? ?? const {};
+    final unmatched = data['unmatched'] as List<dynamic>? ?? const [];
+    return TeamSyncResult(
+      matched: (data['matched'] as num?)?.toInt() ?? 0,
+      ignored: (data['ignored'] as num?)?.toInt() ?? 0,
+      unmatchedNames: unmatched
+          .whereType<Map>()
+          .map((entry) => entry['name'] as String? ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList(),
     );
   }
 

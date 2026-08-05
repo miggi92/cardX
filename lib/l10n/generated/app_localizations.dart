@@ -384,6 +384,78 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get collectionClose;
 
+  /// No description provided for @cardStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams & statistics'**
+  String get cardStatsTitle;
+
+  /// No description provided for @cardStatsGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Goals'**
+  String get cardStatsGoals;
+
+  /// No description provided for @cardStatsGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get cardStatsGames;
+
+  /// No description provided for @cardStatsPenaltyGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Penalty goals'**
+  String get cardStatsPenaltyGoals;
+
+  /// No description provided for @cardStatsPenaltyMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Penalties missed'**
+  String get cardStatsPenaltyMissed;
+
+  /// No description provided for @cardStatsPenalties.
+  ///
+  /// In en, this message translates to:
+  /// **'Penalties'**
+  String get cardStatsPenalties;
+
+  /// No description provided for @cardStatsYellowCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow cards'**
+  String get cardStatsYellowCards;
+
+  /// No description provided for @cardStatsRedCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Red cards'**
+  String get cardStatsRedCards;
+
+  /// No description provided for @cardStatsBlueCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue cards'**
+  String get cardStatsBlueCards;
+
+  /// No description provided for @cardStatsMale.
+  ///
+  /// In en, this message translates to:
+  /// **'male'**
+  String get cardStatsMale;
+
+  /// No description provided for @cardStatsFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'female'**
+  String get cardStatsFemale;
+
+  /// No description provided for @cardStatsMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'mixed'**
+  String get cardStatsMixed;
+
   /// No description provided for @collectionSellAllDuplicatesTitle.
   ///
   /// In en, this message translates to:

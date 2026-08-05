@@ -187,6 +187,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionClose => 'Close';
 
   @override
+  String get cardStatsTitle => 'Teams & statistics';
+
+  @override
+  String get cardStatsGoals => 'Goals';
+
+  @override
+  String get cardStatsGames => 'Games';
+
+  @override
+  String get cardStatsPenaltyGoals => 'Penalty goals';
+
+  @override
+  String get cardStatsPenaltyMissed => 'Penalties missed';
+
+  @override
+  String get cardStatsPenalties => 'Penalties';
+
+  @override
+  String get cardStatsYellowCards => 'Yellow cards';
+
+  @override
+  String get cardStatsRedCards => 'Red cards';
+
+  @override
+  String get cardStatsBlueCards => 'Blue cards';
+
+  @override
+  String get cardStatsMale => 'male';
+
+  @override
+  String get cardStatsFemale => 'female';
+
+  @override
+  String get cardStatsMixed => 'mixed';
+
+  @override
   String get collectionSellAllDuplicatesTitle => 'Sell all duplicates?';
 
   @override

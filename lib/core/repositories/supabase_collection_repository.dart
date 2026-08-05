@@ -14,32 +14,13 @@ class SupabaseCollectionRepository {
   final SupabaseClient _supabase;
   final SupabaseStorageImageResolver _imageResolver;
 
-  PlayerStats _readPlayerStats(dynamic rawStats) {
-    if (rawStats is Map<String, dynamic>) {
-      return PlayerStats(
-        goals: (rawStats['goals'] as num?)?.toInt() ?? 0,
-        games: (rawStats['games'] as num?)?.toInt() ?? 0,
-      );
-    }
-
-    if (rawStats is List && rawStats.isNotEmpty && rawStats.first is Map) {
-      final first = rawStats.first as Map;
-      return PlayerStats(
-        goals: (first['goals'] as num?)?.toInt() ?? 0,
-        games: (first['games'] as num?)?.toInt() ?? 0,
-      );
-    }
-
-    return const PlayerStats(goals: 0, games: 0);
-  }
-
   Future<List<CardModel>> getCards() async {
     final userId = _supabase.auth.currentUser!.id;
 
     final response = await _supabase
         .from('user_cards')
         .select(
-          'rarity, player_pool(id, name, position, league, sport, clubs(id, name), player_stats(goals, games))',
+          'rarity, player_pool(id, name, position, league, sport, clubs(id, name), player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)))',
         )
         .eq('user_id', userId);
 
@@ -94,7 +75,10 @@ class SupabaseCollectionRepository {
           teamLogoUrl: clubLogoById['${club['id']}'] ?? '',
           playerImageUrl: playerImageById['${player['id']}'] ?? '',
           rarity: CardRarity.values.byName(json['rarity']),
-          stats: _readPlayerStats(player['player_stats']),
+          stats: PlayerStats.fromSupabase(
+            legacyStats: player['player_stats'],
+            memberships: player['player_team_memberships'],
+          ),
           sport: (player['sport'] as String?) ?? '',
         ),
       );

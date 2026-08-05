@@ -12,6 +12,8 @@
 - Screens sprechen mit Providern, nicht direkt mit Supabase.
 - Repositories kapseln Remote/Local Details.
 - Wiederverwendbare Infrastruktur lebt unter `lib/core`.
+- Eine Spielerkarte referenziert genau eine Spieleridentitaet; Mannschaften und saisonale Statistiken sind separate Zuordnungen.
+- Externe Sport-APIs werden nur serverseitig ueber Supabase Edge Functions aufgerufen.
 
 ## Qualitaetsziele
 
@@ -25,4 +27,10 @@
 - Neue Features entlang `model -> repository -> provider -> view` aufbauen.
 - Strukturupdates in den Agent-Dateien dokumentieren.
 - Bei Architektur- oder Modulgrenzen-Aenderungen `.agents` im selben Change-Set aktualisieren.
+
+## Team-Datenfluss
+
+`Verein -> saisonale Mannschaft -> Spielerzuordnung -> sportartspezifische Statistik`
+
+Die Admin-UI pflegt Mannschaftsmetadaten und externe Team-IDs. Der Sync ordnet zuerst ueber die externe Spieler-ID, danach nur ueber einen vorhandenen exakten Namen im selben Verein zu. Dadurch kann dieselbe Spieleridentitaet mehreren Mannschaften angehoeren und dasselbe Bild verwenden.
 
