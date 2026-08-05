@@ -40,7 +40,6 @@ class AdminPlayer {
     required this.clubId,
     required this.clubName,
     required this.sport,
-    required this.league,
     required this.season,
     required this.goals,
     required this.games,
@@ -53,7 +52,6 @@ class AdminPlayer {
   final String clubId;
   final String clubName;
   final String sport;
-  final String league;
   final String season;
   final int goals;
   final int games;

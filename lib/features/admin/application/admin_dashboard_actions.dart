@@ -18,7 +18,6 @@ class AdminDashboardActions {
     required String position,
     required String clubId,
     required String sport,
-    required String league,
     required String season,
     Uint8List? imageBytes,
     String? imageExtension,
@@ -30,7 +29,6 @@ class AdminDashboardActions {
           position: position,
           clubId: clubId,
           sport: sport,
-          league: league,
           season: season,
           goals: 0,
           games: 0,
@@ -161,13 +159,11 @@ class AdminDashboardActions {
       ref.invalidate(leaguesBySportProvider(selectedSport));
       if (selectedClubId != null) {
         ref.invalidate(
-          clubLeaguesProvider(
-            (
-              clubId: selectedClubId,
-              sportId: selectedSport,
-              seasonId: selectedSeason ?? '',
-            ),
-          ),
+          clubLeaguesProvider((
+            clubId: selectedClubId,
+            sportId: selectedSport,
+            seasonId: selectedSeason ?? '',
+          )),
         );
       }
     }

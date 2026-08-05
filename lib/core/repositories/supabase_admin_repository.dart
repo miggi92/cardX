@@ -471,7 +471,7 @@ class SupabaseAdminRepository {
     final response = await _supabase
         .from('player_pool')
         .select(
-          'id, name, position, sport, league, season, club_id, clubs(id, name), player_stats(goals, games)',
+          'id, name, position, sport, season, club_id, clubs(id, name), player_stats(goals, games)',
         )
         .eq('club_id', clubId)
         .order('name');
@@ -496,7 +496,6 @@ class SupabaseAdminRepository {
           clubId: '${row['club_id']}',
           clubName: club?['name'] as String? ?? '',
           sport: row['sport']?.toString() ?? '',
-          league: row['league'] as String? ?? '',
           season: row['season'] as String? ?? '',
           goals: stats.$1,
           games: stats.$2,
@@ -513,7 +512,6 @@ class SupabaseAdminRepository {
     required String position,
     required String clubId,
     required String sport,
-    required String league,
     required String season,
     required int goals,
     required int games,
@@ -527,7 +525,7 @@ class SupabaseAdminRepository {
         'p_position': position,
         'p_club_id': clubId,
         'p_sport': sport,
-        'p_league': league,
+        'p_league': '',
         'p_season': season,
         'p_goals': goals,
         'p_games': games,
@@ -553,7 +551,6 @@ class SupabaseAdminRepository {
     required String position,
     required String clubId,
     required String sport,
-    required String league,
     required String season,
     required int goals,
     required int games,
@@ -568,7 +565,7 @@ class SupabaseAdminRepository {
         'p_position': position,
         'p_club_id': clubId,
         'p_sport': sport,
-        'p_league': league,
+        'p_league': '',
         'p_season': season,
         'p_goals': goals,
         'p_games': games,

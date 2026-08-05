@@ -31,7 +31,6 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
 
   late String _selectedSport;
   String? _selectedPosition;
-  String? _selectedLeague;
   String? _selectedSeason;
   late String _selectedClubId;
   Uint8List? _selectedBytes;
@@ -42,7 +41,6 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
   List<SportOption> _sports = const [];
   List<SeasonOption> _seasons = const [];
   Map<String, List<PositionOption>> _positionsBySport = const {};
-  Map<String, List<LeagueOption>> _leaguesBySport = const {};
 
   @override
   void initState() {
@@ -52,7 +50,6 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
     _gamesController.text = widget.player.games.toString();
     _selectedSport = widget.player.sport;
     _selectedPosition = widget.player.position;
-    _selectedLeague = widget.player.league;
     _selectedSeason = widget.player.season;
     _selectedClubId = widget.player.clubId;
     _loadOptions();
@@ -73,18 +70,8 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
       final seasons = await repo.listSeasons();
       final positionEntries = await Future.wait(
         sports.map(
-          (sport) async => MapEntry(
-            sport.id,
-            await repo.listPositions(sportId: sport.id),
-          ),
-        ),
-      );
-      final leagueEntries = await Future.wait(
-        sports.map(
-          (sport) async => MapEntry(
-            sport.id,
-            await repo.listLeagues(sportId: sport.id),
-          ),
+          (sport) async =>
+              MapEntry(sport.id, await repo.listPositions(sportId: sport.id)),
         ),
       );
 
@@ -95,30 +82,21 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
       final positionsBySport = <String, List<PositionOption>>{
         for (final entry in positionEntries) entry.key: entry.value,
       };
-      final leaguesBySport = <String, List<LeagueOption>>{
-        for (final entry in leagueEntries) entry.key: entry.value,
-      };
 
       String selectedSport = _selectedSport;
-      if (selectedSport.isEmpty || !sports.any((sport) => sport.id == selectedSport)) {
+      if (selectedSport.isEmpty ||
+          !sports.any((sport) => sport.id == selectedSport)) {
         selectedSport = sports.isNotEmpty ? sports.first.id : '';
       }
 
       String? selectedPosition = _selectedPosition;
       if (selectedSport.isNotEmpty) {
         final selectedPositions = positionsBySport[selectedSport] ?? const [];
-        if (!selectedPositions.any((position) => position.id == selectedPosition) &&
+        if (!selectedPositions.any(
+              (position) => position.id == selectedPosition,
+            ) &&
             selectedPositions.isNotEmpty) {
           selectedPosition = selectedPositions.first.id;
-        }
-      }
-
-      String? selectedLeague = _selectedLeague;
-      if (selectedSport.isNotEmpty) {
-        final selectedLeagues = leaguesBySport[selectedSport] ?? const [];
-        if (!selectedLeagues.any((league) => league.id == selectedLeague) &&
-            selectedLeagues.isNotEmpty) {
-          selectedLeague = selectedLeagues.first.id;
         }
       }
 
@@ -132,10 +110,8 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
         _sports = sports;
         _seasons = seasons;
         _positionsBySport = positionsBySport;
-        _leaguesBySport = leaguesBySport;
         _selectedSport = selectedSport;
         _selectedPosition = selectedPosition;
-        _selectedLeague = selectedLeague;
         _selectedSeason = selectedSeason;
         _isLoading = false;
       });
@@ -179,11 +155,10 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
 
     if (_selectedSport.isEmpty ||
         _selectedPosition == null ||
-        _selectedLeague == null ||
         _selectedSeason == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Bitte Sport, Position, Liga und Saison auswaehlen.'),
+          content: Text('Bitte Sport, Position und Saison auswaehlen.'),
         ),
       );
       return;
@@ -202,7 +177,6 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
             position: _selectedPosition ?? widget.player.position,
             clubId: _selectedClubId,
             sport: _selectedSport,
-            league: _selectedLeague ?? widget.player.league,
             season: _selectedSeason ?? widget.player.season,
             goals: _parseNonNegative(_goalsController.text),
             games: _parseNonNegative(_gamesController.text),
@@ -218,9 +192,9 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
       if (_selectedClubId != widget.player.clubId) {
         ref.invalidate(adminPlayersByClubProvider(_selectedClubId));
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Spieler aktualisiert.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Spieler aktualisiert.')));
       Navigator.of(context).pop(true);
     } on PostgrestException catch (error) {
       if (mounted) {
@@ -280,7 +254,8 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      initialValue: _sports.any((sport) => sport.id == _selectedSport)
+                      initialValue:
+                          _sports.any((sport) => sport.id == _selectedSport)
                           ? _selectedSport
                           : (_sports.isNotEmpty ? _sports.first.id : null),
                       decoration: const InputDecoration(labelText: 'Sport'),
@@ -298,18 +273,16 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                         }
                         setState(() {
                           _selectedSport = value;
-                          final positionsForSport = _positionsBySport[value] ?? const [];
-                          final leaguesForSport = _leaguesBySport[value] ?? const [];
-                          _selectedPosition = positionsForSport.any(
-                            (position) => position.id == _selectedPosition,
-                          )
+                          final positionsForSport =
+                              _positionsBySport[value] ?? const [];
+                          _selectedPosition =
+                              positionsForSport.any(
+                                (position) => position.id == _selectedPosition,
+                              )
                               ? _selectedPosition
-                              : (positionsForSport.isEmpty ? null : positionsForSport.first.id);
-                          _selectedLeague = leaguesForSport.any(
-                            (league) => league.id == _selectedLeague,
-                          )
-                              ? _selectedLeague
-                              : (leaguesForSport.isEmpty ? null : leaguesForSport.first.id);
+                              : (positionsForSport.isEmpty
+                                    ? null
+                                    : positionsForSport.first.id);
                         });
                       },
                     ),
@@ -327,21 +300,24 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                             )
                             ? _selectedPosition
                             : (currentPositions.isNotEmpty
-                                ? currentPositions.first.id
-                                : null);
+                                  ? currentPositions.first.id
+                                  : null);
                       }(),
                       decoration: const InputDecoration(labelText: 'Position'),
-                      validator: (value) => value == null ? 'Pflichtfeld' : null,
-                            items: (_selectedSport.isEmpty
-                              ? const <PositionOption>[]
-                              : _positionsBySport[_selectedSport] ?? const <PositionOption>[])
-                          .map(
-                            (position) => DropdownMenuItem<String>(
-                              value: position.id,
-                              child: Text(position.displayName),
-                            ),
-                          )
-                          .toList(),
+                      validator: (value) =>
+                          value == null ? 'Pflichtfeld' : null,
+                      items:
+                          (_selectedSport.isEmpty
+                                  ? const <PositionOption>[]
+                                  : _positionsBySport[_selectedSport] ??
+                                        const <PositionOption>[])
+                              .map(
+                                (position) => DropdownMenuItem<String>(
+                                  value: position.id,
+                                  child: Text(position.displayName),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (value) {
                         setState(() {
                           _selectedPosition = value;
@@ -350,9 +326,14 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      initialValue: editableClubs.any((club) => club.clubId == _selectedClubId)
+                      initialValue:
+                          editableClubs.any(
+                            (club) => club.clubId == _selectedClubId,
+                          )
                           ? _selectedClubId
-                          : (editableClubs.isNotEmpty ? editableClubs.first.clubId : null),
+                          : (editableClubs.isNotEmpty
+                                ? editableClubs.first.clubId
+                                : null),
                       decoration: const InputDecoration(labelText: 'Verein'),
                       items: editableClubs
                           .map(
@@ -373,46 +354,13 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      initialValue: () {
-                        final String currentSport = _selectedSport;
-                        if (currentSport.isEmpty) {
-                          return null;
-                        }
-                        final List<LeagueOption> currentLeagues =
-                            _leaguesBySport[currentSport] ?? const [];
-                        return currentLeagues.any(
-                              (league) => league.id == _selectedLeague,
-                            )
-                            ? _selectedLeague
-                            : (currentLeagues.isNotEmpty
-                                ? currentLeagues.first.id
-                                : null);
-                      }(),
-                      decoration: const InputDecoration(labelText: 'Liga'),
-                      validator: (value) => value == null ? 'Pflichtfeld' : null,
-                            items: (_selectedSport.isEmpty
-                              ? const <LeagueOption>[]
-                              : _leaguesBySport[_selectedSport] ?? const <LeagueOption>[])
-                          .map(
-                            (league) => DropdownMenuItem<String>(
-                              value: league.id,
-                              child: Text(league.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedLeague = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: _seasons.any((season) => season.id == _selectedSeason)
+                      initialValue:
+                          _seasons.any((season) => season.id == _selectedSeason)
                           ? _selectedSeason
                           : (_seasons.isNotEmpty ? _seasons.first.id : null),
                       decoration: const InputDecoration(labelText: 'Saison'),
-                      validator: (value) => value == null ? 'Pflichtfeld' : null,
+                      validator: (value) =>
+                          value == null ? 'Pflichtfeld' : null,
                       items: _seasons
                           .map(
                             (season) => DropdownMenuItem<String>(
@@ -471,7 +419,9 @@ class _AdminEditPlayerSheetState extends ConsumerState<AdminEditPlayerSheet> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Aenderungen speichern'),
                       ),

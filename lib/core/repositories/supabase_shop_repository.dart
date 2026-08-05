@@ -113,7 +113,7 @@ class SupabaseShopRepository {
     String filterValue,
   ) async {
     const playerPoolSelect =
-        'id, name, position, league, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs!inner(id, name)';
+        'id, name, position, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs!inner(id, name)';
 
     if (type == PackType.club) {
       return await _supabase
@@ -126,22 +126,27 @@ class SupabaseShopRepository {
       return await getAllPlayers();
     }
 
-    final String column = switch (type) {
-      PackType.sport => 'sport',
-      PackType.league => 'league',
-      _ => 'league',
-    };
+    if (type == PackType.league) {
+      return await _supabase
+          .from('player_pool')
+          .select(playerPoolSelect)
+          .eq(
+            'player_team_memberships.club_season_teams.league_id',
+            filterValue,
+          );
+    }
+
     return await _supabase
         .from('player_pool')
         .select(playerPoolSelect)
-        .eq(column, filterValue);
+        .eq('sport', filterValue);
   }
 
   Future<List<Map<String, dynamic>>> getAllPlayers() async {
     return await _supabase
         .from('player_pool')
         .select(
-          'id, name, position, league, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs(id, name)',
+          'id, name, position, sport, season, player_stats(goals, games), player_team_memberships(is_active, club_season_teams(team_name, season_id, age_group, gender, sport_id, league_id), player_team_stats(stats, last_synced_at)), clubs(id, name)',
         );
   }
 
@@ -202,7 +207,6 @@ class SupabaseShopRepository {
             'id': row['player_id'],
             'name': row['player_name'],
             'position': row['player_position'],
-            'league': row['player_league'],
             'sport': row['player_sport'],
             'season': row['player_season'],
             'goals': row['player_goals'],
@@ -284,7 +288,6 @@ class SupabaseShopRepository {
           id: '${player['id']}_${rarity.name}',
           playerName: player['name'] as String,
           position: player['position'] as String,
-          league: (player['league'] as String?) ?? '',
           teamName: club['name'] as String,
           teamLogoUrl: clubLogoById['${club['id']}']!,
           playerImageUrl: playerImageById['${player['id']}']!,

@@ -142,7 +142,7 @@ class AdminPendingRequestsSection extends StatelessWidget {
   final ValueChanged<bool> onFilterChanged;
   final AsyncValue<List<AdminAccessRequest>> requestsAsync;
   final Future<void> Function(AdminAccessRequest request, bool approve)
-      onReviewRequest;
+  onReviewRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -174,11 +174,11 @@ class AdminPendingRequestsSection extends StatelessWidget {
               error: (error, _) =>
                   Text('Anfragen konnten nicht geladen werden: $error'),
               data: (requests) {
-                final filtered = filterPendingBySelectedClub &&
-                        selectedClubId != null
+                final filtered =
+                    filterPendingBySelectedClub && selectedClubId != null
                     ? requests
-                        .where((request) => request.clubId == selectedClubId)
-                        .toList()
+                          .where((request) => request.clubId == selectedClubId)
+                          .toList()
                     : requests;
 
                 if (filtered.isEmpty) {
@@ -202,7 +202,9 @@ class AdminPendingRequestsSection extends StatelessWidget {
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             const SizedBox(height: 4),
-                            Text('Anfragender User: ${request.requesterUserId}'),
+                            Text(
+                              'Anfragender User: ${request.requesterUserId}',
+                            ),
                             if (request.message != null &&
                                 request.message!.isNotEmpty) ...[
                               const SizedBox(height: 4),
@@ -228,10 +230,8 @@ class AdminPendingRequestsSection extends StatelessWidget {
                                   label: const Text('Genehmigen'),
                                 ),
                                 OutlinedButton.icon(
-                                  onPressed: () => onReviewRequest(
-                                    request,
-                                    false,
-                                  ),
+                                  onPressed: () =>
+                                      onReviewRequest(request, false),
                                   icon: const Icon(Icons.cancel_outlined),
                                   label: const Text('Ablehnen'),
                                 ),
@@ -362,7 +362,7 @@ class AdminPendingSportRequestsSection extends StatelessWidget {
 
   final AsyncValue<List<SportRequest>> pendingAsync;
   final Future<void> Function(SportRequest request, bool approve)
-      onReviewRequest;
+  onReviewRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -416,20 +416,16 @@ class AdminPendingSportRequestsSection extends StatelessWidget {
                                   runSpacing: 8,
                                   children: [
                                     FilledButton.icon(
-                                      onPressed: () => onReviewRequest(
-                                        request,
-                                        true,
-                                      ),
+                                      onPressed: () =>
+                                          onReviewRequest(request, true),
                                       icon: const Icon(
                                         Icons.check_circle_outline,
                                       ),
                                       label: const Text('Genehmigen'),
                                     ),
                                     OutlinedButton.icon(
-                                      onPressed: () => onReviewRequest(
-                                        request,
-                                        false,
-                                      ),
+                                      onPressed: () =>
+                                          onReviewRequest(request, false),
                                       icon: const Icon(Icons.cancel_outlined),
                                       label: const Text('Ablehnen'),
                                     ),
@@ -602,8 +598,10 @@ class AdminRoleManagementSection extends StatelessWidget {
                 final scoped = selectedClubId == null
                     ? assignments
                     : assignments
-                        .where((assignment) => assignment.clubId == selectedClubId)
-                        .toList();
+                          .where(
+                            (assignment) => assignment.clubId == selectedClubId,
+                          )
+                          .toList();
 
                 if (scoped.isEmpty) {
                   return const Text(
@@ -646,18 +644,15 @@ class AdminCreatePlayerCard extends StatelessWidget {
     required this.nameController,
     required this.sportsAsync,
     required this.positionsAsync,
-    required this.leaguesAsync,
     required this.seasonsAsync,
     required this.selectedSport,
     required this.selectedPosition,
-    required this.selectedLeague,
     required this.selectedSeason,
     required this.selectedImageName,
     required this.canCreate,
     required this.isSaving,
     required this.onSportChanged,
     required this.onPositionChanged,
-    required this.onLeagueChanged,
     required this.onSeasonChanged,
     required this.onPickImage,
     required this.onCreatePlayer,
@@ -667,18 +662,15 @@ class AdminCreatePlayerCard extends StatelessWidget {
   final TextEditingController nameController;
   final AsyncValue<List<SportOption>> sportsAsync;
   final AsyncValue<List<PositionOption>> positionsAsync;
-  final AsyncValue<List<LeagueOption>> leaguesAsync;
   final AsyncValue<List<SeasonOption>> seasonsAsync;
   final String? selectedSport;
   final String? selectedPosition;
-  final String? selectedLeague;
   final String? selectedSeason;
   final String? selectedImageName;
   final bool canCreate;
   final bool isSaving;
   final ValueChanged<String?> onSportChanged;
   final ValueChanged<String?> onPositionChanged;
-  final ValueChanged<String?> onLeagueChanged;
   final ValueChanged<String?> onSeasonChanged;
   final VoidCallback onPickImage;
   final Future<void> Function() onCreatePlayer;
@@ -739,45 +731,10 @@ class AdminCreatePlayerCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               if (selectedSport != null)
-                leaguesAsync.when(
-                  loading: () => const LinearProgressIndicator(minHeight: 2),
-                  error: (error, _) =>
-                      Text('Ligen konnten nicht geladen werden: $error'),
-                  data: (leagues) {
-                    final isSelectedValid = leagues.any(
-                      (league) => league.id == selectedLeague,
-                    );
-
-                    return DropdownButtonFormField<String>(
-                      initialValue: isSelectedValid ? selectedLeague : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Liga',
-                        prefixIcon: Icon(Icons.emoji_events_outlined),
-                      ),
-                      items: leagues
-                          .map(
-                            (league) => DropdownMenuItem<String>(
-                              value: league.id,
-                              child: Text(league.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onLeagueChanged,
-                    );
-                  },
-                )
-              else
-                const Text(
-                  'Bitte zuerst eine Sportart auswählen.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              const SizedBox(height: 12),
-              if (selectedSport != null)
                 positionsAsync.when(
                   loading: () => const LinearProgressIndicator(minHeight: 2),
-                  error: (error, _) => Text(
-                    'Positionen konnten nicht geladen werden: $error',
-                  ),
+                  error: (error, _) =>
+                      Text('Positionen konnten nicht geladen werden: $error'),
                   data: (positions) {
                     final isSelectedValid = positions.any(
                       (position) => position.id == selectedPosition,
@@ -908,7 +865,6 @@ class AdminCreatePlayerCard extends StatelessWidget {
     }
     return null;
   }
-
 }
 
 class AdminPlayersSection extends StatelessWidget {
@@ -960,11 +916,13 @@ class AdminPlayersSection extends StatelessWidget {
                           ),
                           title: Text(player.name),
                           subtitle: Text(
-                            '${player.position} | ${player.sport} | ${player.league} | ${player.season}\nTore: ${player.goals} | Spiele: ${player.games}',
+                            '${player.position} | ${player.sport} | ${player.season}\nTore: ${player.goals} | Spiele: ${player.games}',
                           ),
                           isThreeLine: true,
                           trailing: IconButton(
-                            onPressed: canEdit ? () => onEditPlayer(player) : null,
+                            onPressed: canEdit
+                                ? () => onEditPlayer(player)
+                                : null,
                             icon: const Icon(Icons.edit_outlined),
                             tooltip: 'Spieler bearbeiten',
                           ),

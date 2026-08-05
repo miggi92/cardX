@@ -36,7 +36,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   String? _selectedSport;
   String? _selectedPosition;
-  String? _selectedLeague;
   String? _selectedSeason;
   String? _selectedClubId;
   String? _selectedRoleUserId;
@@ -292,7 +291,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 _selectedClubId = value;
                 _selectedSport = null;
                 _selectedPosition = null;
-                _selectedLeague = null;
               });
             },
             imageResolver: ref.read(storageImageResolverProvider),
@@ -307,19 +305,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             positionsAsync: _selectedSport == null
                 ? const AsyncValue.data([])
                 : ref.watch(positionsBySportProvider(_selectedSport!)),
-            leaguesAsync: _selectedSport == null || selectedClubId == null
-                ? const AsyncValue.data([])
-                : ref.watch(
-                    clubLeaguesProvider((
-                      clubId: selectedClubId,
-                      sportId: _selectedSport!,
-                      seasonId: _selectedSeason ?? '',
-                    )),
-                  ),
             seasonsAsync: ref.watch(seasonsProvider),
             selectedSport: _selectedSport,
             selectedPosition: _selectedPosition,
-            selectedLeague: _selectedLeague,
             selectedSeason: _selectedSeason,
             selectedImageName: _selectedImageName,
             canCreate:
@@ -333,7 +321,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               setState(() {
                 _selectedSport = value;
                 _selectedPosition = null;
-                _selectedLeague = null;
               });
             },
             onPositionChanged: (value) {
@@ -344,21 +331,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 _selectedPosition = value;
               });
             },
-            onLeagueChanged: (value) {
-              if (value == null) {
-                return;
-              }
-              setState(() {
-                _selectedLeague = value;
-              });
-            },
             onSeasonChanged: (value) {
               if (value == null) {
                 return;
               }
               setState(() {
                 _selectedSeason = value;
-                _selectedLeague = null;
               });
             },
             onPickImage: _pickImage,
@@ -622,17 +600,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final clubId = _selectedClubId;
     final selectedSport = _selectedSport;
     final selectedPosition = _selectedPosition;
-    final selectedLeague = _selectedLeague;
     final selectedSeason = _selectedSeason;
     if (clubId == null ||
         selectedSport == null ||
         selectedPosition == null ||
-        selectedLeague == null ||
         selectedSeason == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Bitte Verein, Sportart, Liga, Position und Saison auswählen.',
+            'Bitte Verein, Sportart, Position und Saison auswählen.',
           ),
         ),
       );
@@ -650,7 +626,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         position: selectedPosition,
         clubId: clubId,
         sport: selectedSport,
-        league: selectedLeague,
         season: selectedSeason,
         imageBytes: _selectedImageBytes,
         imageExtension: _extensionFromFileName(_selectedImageName),
@@ -663,7 +638,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       _nameController.clear();
       setState(() {
         _selectedPosition = null;
-        _selectedLeague = null;
         _selectedImageBytes = null;
         _selectedImageName = null;
       });
