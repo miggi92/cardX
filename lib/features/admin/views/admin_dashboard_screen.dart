@@ -577,7 +577,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${result.matched} Spieler abgeglichen, ${result.ignored} ignoriert.$unmatched',
+            '${result.matched} Spieler abgeglichen, '
+            '${result.created} neu angelegt, '
+            '${result.ignored} ignoriert.$unmatched',
           ),
         ),
       );

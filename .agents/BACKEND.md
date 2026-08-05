@@ -20,6 +20,7 @@
 - Karten/Pool: `user_cards`, `player_pool`, `player_stats`
 - Mannschaften: `club_season_teams`, `player_team_memberships`
 - Externe Sportdaten: `player_external_identities`, `player_team_stats`
+- Referenzdaten: `external_data_providers`; Mannschaftsgeschlecht nutzt den Enum `team_gender`
 - Taxonomien: `sports`, `positions`, `leagues`, `seasons`
 - Admin: Rollen + Requests via RPC-Workflow
 
@@ -32,9 +33,13 @@
 
 ## Mannschaften und externe Statistiken
 
-- `player_pool` ist die bildtragende Spieleridentitaet; ein Spieler wird nicht pro Mannschaft dupliziert.
+- `player_pool` enthaelt saisonale Spielerzeilen; innerhalb derselben Saison wird ein Spieler nicht pro Mannschaft dupliziert.
 - `player_team_memberships` bildet Mehrfachzuordnungen zu saisonalen Mannschaften ab.
 - Externe IDs werden mit Provider in `player_external_identities` gespeichert.
+- Provider werden zentral in `external_data_providers` gepflegt und per Foreign Key von Mannschaften und Spieleridentitaeten referenziert.
+- Externe Spieleridentitaeten und Sync-Zuordnungen sind saisonbezogen; ein Sync darf keine Spielerzeile einer anderen Saison verwenden.
+- Unbekannte API-Spieler werden beim Sync in der Mannschaftssaison angelegt. Fehlt eine verwertbare Position, wird die normalisierte Position `unknown` verwendet.
+- Geschlechterwerte sind mit `team_gender` auf `male`, `female` und `mixed` begrenzt; sportabhaengige Altersklassen und Statistikschluessel bleiben erweiterbar.
 - Sportartspezifische Werte liegen als JSON-Objekt in `player_team_stats.stats`; gemeinsame Kartenwerte bleiben in `player_stats` kompatibel.
 - Handball-Lineups werden ueber die JWT-geschuetzte Edge Function `sync-team-lineup` geladen und durch `sync_team_lineup` geschrieben.
-- Platzhalter wie `N.N.` werden beim Sync ignoriert. Unbekannte Namen werden gemeldet und nicht automatisch als neue Spieler angelegt.
+- Platzhalter wie `N.N.` werden beim Sync ignoriert. Unbekannte Namen werden automatisch fuer die Mannschaftssaison angelegt; fehlende Berechtigungen werden als nicht zugeordnet gemeldet.

@@ -338,6 +338,7 @@ class SupabaseAdminRepository {
     final unmatched = data['unmatched'] as List<dynamic>? ?? const [];
     return TeamSyncResult(
       matched: (data['matched'] as num?)?.toInt() ?? 0,
+      created: (data['created'] as num?)?.toInt() ?? 0,
       ignored: (data['ignored'] as num?)?.toInt() ?? 0,
       unmatchedNames: unmatched
           .whereType<Map>()

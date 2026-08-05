@@ -31,11 +31,13 @@ class AdminTeam {
 class TeamSyncResult {
   const TeamSyncResult({
     required this.matched,
+    required this.created,
     required this.ignored,
     required this.unmatchedNames,
   });
 
   final int matched;
+  final int created;
   final int ignored;
   final List<String> unmatchedNames;
 }
