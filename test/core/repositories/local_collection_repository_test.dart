@@ -17,12 +17,25 @@ void main() {
       id: 'player-1_rare',
       playerName: 'Test Player',
       position: 'Forward',
-      league: 'Test League',
       teamName: 'Test Club',
       teamLogoUrl: 'https://example.com/club.png',
       playerImageUrl: 'https://example.com/player.png',
       rarity: CardRarity.rare,
-      stats: PlayerStats(goals: 7, games: 12),
+      stats: PlayerStats(
+        goals: 7,
+        games: 12,
+        teams: [
+          PlayerTeamStats(
+            teamName: 'Test Team',
+            season: '2025/26',
+            ageGroup: 'Seniors',
+            gender: 'male',
+            sport: 'football',
+            league: 'Test League',
+            values: {'goals': 7, 'games': 12},
+          ),
+        ],
+      ),
       sport: 'football',
       season: '2025/26',
     );
