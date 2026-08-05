@@ -506,6 +506,11 @@ class SupabaseAdminRepository {
         contentType: _contentTypeForExtension(extension),
       ),
     );
+    await _imageResolver.invalidateImage(
+      bucketName: 'player-images',
+      objectId: playerId,
+      isPublic: false,
+    );
   }
 
   Future<void> _deleteExistingPlayerImages({

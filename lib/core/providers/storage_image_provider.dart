@@ -1,4 +1,6 @@
+import 'package:cardx/core/repositories/local_storage_image_cache.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final storageImageResolverProvider = Provider(
@@ -6,13 +8,26 @@ final storageImageResolverProvider = Provider(
 );
 
 class SupabaseStorageImageResolver {
-  SupabaseStorageImageResolver({SupabaseClient? supabase})
-    : _supabase = supabase ?? Supabase.instance.client;
+  SupabaseStorageImageResolver({
+    SupabaseClient? supabase,
+    SharedPreferences? preferences,
+    DateTime Function()? now,
+  }) : _supabase = supabase ?? Supabase.instance.client,
+       _persistentCache = preferences == null
+           ? SharedPreferences.getInstance().then(LocalStorageImageCache.new)
+           : Future.value(LocalStorageImageCache(preferences)),
+       _now = now ?? DateTime.now;
 
   final SupabaseClient _supabase;
-  final Map<String, String> _resolvedImageUrlCache = {};
+  final Future<LocalStorageImageCache> _persistentCache;
+  final DateTime Function() _now;
+  final Map<String, CachedStorageImage> _resolvedImageCache = {};
+  final Map<String, Future<String>> _inFlightResolutions = {};
 
   static const _fallbackExtensions = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+  static const _publicCacheLifetime = Duration(days: 7);
+  static const _missingImageCacheLifetime = Duration(hours: 1);
+  static const _signedUrlRefreshMargin = Duration(minutes: 5);
 
   Future<String> resolveImageUrl({
     required String bucketName,
@@ -20,13 +35,119 @@ class SupabaseStorageImageResolver {
     required bool isPublic,
     int signedUrlLifetimeSeconds = 60 * 60 * 24,
   }) async {
-    final cacheKey = '$bucketName/$objectId/$isPublic';
-    final cachedUrl = _resolvedImageUrlCache[cacheKey];
-    if (cachedUrl != null) {
-      return cachedUrl;
+    final userId = _supabase.auth.currentUser?.id;
+    final cacheKey = _cacheKey(
+      bucketName: bucketName,
+      objectId: objectId,
+      isPublic: isPublic,
+      userId: userId,
+    );
+    final cachedImage = _resolvedImageCache[cacheKey];
+    if (cachedImage != null && cachedImage.refreshAfter.isAfter(_now())) {
+      return cachedImage.url;
     }
 
+    final inFlightResolution = _inFlightResolutions[cacheKey];
+    if (inFlightResolution != null) {
+      return inFlightResolution;
+    }
+
+    final persistentCacheKey = isPublic || userId != null ? cacheKey : null;
+    final resolution = _resolveImageUrl(
+      cacheKey: cacheKey,
+      persistentCacheKey: persistentCacheKey,
+      bucketName: bucketName,
+      objectId: objectId,
+      isPublic: isPublic,
+      signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+    );
+    _inFlightResolutions[cacheKey] = resolution;
+
+    try {
+      return await resolution;
+    } finally {
+      if (identical(_inFlightResolutions[cacheKey], resolution)) {
+        _inFlightResolutions.remove(cacheKey);
+      }
+    }
+  }
+
+  Future<void> invalidateImage({
+    required String bucketName,
+    required String objectId,
+    required bool isPublic,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    final cacheKey = _cacheKey(
+      bucketName: bucketName,
+      objectId: objectId,
+      isPublic: isPublic,
+      userId: userId,
+    );
+    final inFlightResolution = _inFlightResolutions[cacheKey];
+    if (inFlightResolution != null) {
+      try {
+        await inFlightResolution;
+      } catch (_) {
+        // The stale entry still needs to be removed after a failed lookup.
+      }
+    }
+
+    _resolvedImageCache.remove(cacheKey);
+    if (isPublic || userId != null) {
+      try {
+        await (await _persistentCache).remove(cacheKey);
+      } catch (_) {
+        // Image uploads should succeed if browser storage is unavailable.
+      }
+    }
+  }
+
+  Future<String> _resolveImageUrl({
+    required String cacheKey,
+    required String? persistentCacheKey,
+    required String bucketName,
+    required String objectId,
+    required bool isPublic,
+    required int signedUrlLifetimeSeconds,
+  }) async {
     final storage = _supabase.storage.from(bucketName);
+    final persistedImage = persistentCacheKey == null
+        ? null
+        : await _readPersistentCache(persistentCacheKey);
+
+    if (persistedImage != null) {
+      _resolvedImageCache[cacheKey] = persistedImage;
+      if (persistedImage.refreshAfter.isAfter(_now())) {
+        return persistedImage.url;
+      }
+
+      if (!isPublic && persistedImage.path.isNotEmpty) {
+        try {
+          final refreshedUrl = await _buildUrl(
+            storage: storage,
+            path: persistedImage.path,
+            isPublic: false,
+            mimeType: persistedImage.mimeType,
+            signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+          );
+          if (refreshedUrl.isNotEmpty) {
+            await _cacheResolvedImage(
+              cacheKey: cacheKey,
+              persistentCacheKey: persistentCacheKey,
+              path: persistedImage.path,
+              url: refreshedUrl,
+              mimeType: persistedImage.mimeType,
+              isPublic: false,
+              signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+            );
+            return refreshedUrl;
+          }
+        } catch (_) {
+          // The object may have been replaced with a different extension.
+        }
+      }
+    }
 
     try {
       final files = await storage.list(
@@ -48,7 +169,15 @@ class SupabaseStorageImageResolver {
             signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
           );
           if (resolvedUrl.isNotEmpty) {
-            _resolvedImageUrlCache[cacheKey] = resolvedUrl;
+            await _cacheResolvedImage(
+              cacheKey: cacheKey,
+              persistentCacheKey: persistentCacheKey,
+              path: preferred.name,
+              url: resolvedUrl,
+              mimeType: _mimeTypeOf(preferred),
+              isPublic: isPublic,
+              signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+            );
           }
           return resolvedUrl;
         }
@@ -69,7 +198,15 @@ class SupabaseStorageImageResolver {
             signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
           );
           if (resolvedUrl.isNotEmpty) {
-            _resolvedImageUrlCache[cacheKey] = resolvedUrl;
+            await _cacheResolvedImage(
+              cacheKey: cacheKey,
+              persistentCacheKey: persistentCacheKey,
+              path: path,
+              url: resolvedUrl,
+              mimeType: extension == 'svg' ? 'image/svg+xml' : null,
+              isPublic: isPublic,
+              signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+            );
           }
           return resolvedUrl;
         }
@@ -78,9 +215,84 @@ class SupabaseStorageImageResolver {
       }
     }
 
-    // Cache misses as empty strings to avoid repeated expensive lookups.
-    _resolvedImageUrlCache[cacheKey] = '';
+    await _cacheResolvedImage(
+      cacheKey: cacheKey,
+      persistentCacheKey: persistentCacheKey,
+      path: '',
+      url: '',
+      isPublic: isPublic,
+      signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+    );
     return '';
+  }
+
+  Future<CachedStorageImage?> _readPersistentCache(String cacheKey) async {
+    try {
+      return (await _persistentCache).get(cacheKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _cacheResolvedImage({
+    required String cacheKey,
+    required String? persistentCacheKey,
+    required String path,
+    required String url,
+    required bool isPublic,
+    required int signedUrlLifetimeSeconds,
+    String? mimeType,
+  }) async {
+    final image = CachedStorageImage(
+      path: path,
+      url: url,
+      mimeType: mimeType,
+      refreshAfter: _refreshAfter(
+        url: url,
+        isPublic: isPublic,
+        signedUrlLifetimeSeconds: signedUrlLifetimeSeconds,
+      ),
+    );
+    _resolvedImageCache[cacheKey] = image;
+
+    if (persistentCacheKey == null) {
+      return;
+    }
+
+    try {
+      await (await _persistentCache).set(persistentCacheKey, image);
+    } catch (_) {
+      // Image loading should still work if browser storage is unavailable.
+    }
+  }
+
+  DateTime _refreshAfter({
+    required String url,
+    required bool isPublic,
+    required int signedUrlLifetimeSeconds,
+  }) {
+    if (url.isEmpty) {
+      return _now().add(_missingImageCacheLifetime);
+    }
+    if (isPublic) {
+      return _now().add(_publicCacheLifetime);
+    }
+
+    final lifetime = Duration(seconds: signedUrlLifetimeSeconds);
+    final refreshLifetime = lifetime > _signedUrlRefreshMargin
+        ? lifetime - _signedUrlRefreshMargin
+        : lifetime;
+    return _now().add(refreshLifetime);
+  }
+
+  String _cacheKey({
+    required String bucketName,
+    required String objectId,
+    required bool isPublic,
+    required String? userId,
+  }) {
+    final scope = isPublic ? 'public' : userId ?? 'anonymous';
+    return '$scope/$bucketName/$objectId';
   }
 
   Future<String> _buildUrl({
