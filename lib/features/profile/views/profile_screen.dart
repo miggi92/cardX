@@ -2,6 +2,7 @@ import 'package:cardx/core/theme/app_theme.dart';
 import 'package:cardx/core/providers/admin_provider.dart';
 import 'package:cardx/features/auth/application/auth_controller.dart';
 import 'package:cardx/features/admin/models/admin_access_request.dart';
+import 'package:cardx/features/social/widgets/friends_profile_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -215,6 +216,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 18),
+            const FriendsProfileSection(),
+            const SizedBox(height: 14),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
