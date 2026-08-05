@@ -48,7 +48,9 @@ class SupabaseShopRepository {
         .from('packs')
         .select(
           'id, name, price, type, filter_value, gradient_colors, season_id, seasons(display_name)',
-        );
+        )
+        .order('price')
+        .order('name');
     final clubPacks = response
         .where((json) => json['type'] == PackType.club.name)
         .toList();
