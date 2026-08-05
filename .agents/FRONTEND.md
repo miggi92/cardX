@@ -22,6 +22,7 @@
 - Bild-Ladefehler robust mit Fallback behandeln.
 - Legendary-Karten in `CardWidget` nutzen einen dezenten animierten Schimmer.
 - Epic-Karten in `CardWidget` nutzen einen animierten Sternenglitzer-Effekt.
+- Rare-Karten in `CardWidget` nutzen einen animierten Blitz-Effekt.
 - Admin UI strikt role-gated rendern.
 
 ## Checkliste vor Merge

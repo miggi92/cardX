@@ -57,13 +57,21 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
+    expect(find.byKey(const ValueKey('rare-card-lightning')), findsNothing);
 
     await pumpCard(CardRarity.epic);
     expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
     expect(find.byKey(const ValueKey('epic-card-sparkles')), findsOneWidget);
+    expect(find.byKey(const ValueKey('rare-card-lightning')), findsNothing);
+
+    await pumpCard(CardRarity.rare);
+    expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
+    expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
+    expect(find.byKey(const ValueKey('rare-card-lightning')), findsOneWidget);
 
     await pumpCard(CardRarity.common);
     expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
     expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
+    expect(find.byKey(const ValueKey('rare-card-lightning')), findsNothing);
   });
 }

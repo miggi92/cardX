@@ -180,3 +180,130 @@ class _EpicSparklesPainter extends CustomPainter {
     return oldDelegate.progress != progress;
   }
 }
+
+class RareCardLightning extends StatefulWidget {
+  const RareCardLightning({super.key});
+
+  @override
+  State<RareCardLightning> createState() => _RareCardLightningState();
+}
+
+class _RareCardLightningState extends State<RareCardLightning>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        key: const ValueKey('rare-card-lightning'),
+        animation: _controller,
+        builder: (context, _) => CustomPaint(
+          painter: _RareLightningPainter(progress: _controller.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _RareLightningPainter extends CustomPainter {
+  const _RareLightningPainter({required this.progress});
+
+  final double progress;
+
+  static const _bolts = <(List<Offset>, double)>[
+    (
+      [
+        Offset(0.16, -0.04),
+        Offset(0.30, 0.22),
+        Offset(0.23, 0.23),
+        Offset(0.42, 0.52),
+        Offset(0.34, 0.50),
+        Offset(0.48, 0.82),
+      ],
+      0.00,
+    ),
+    (
+      [
+        Offset(0.88, 0.12),
+        Offset(0.72, 0.34),
+        Offset(0.80, 0.35),
+        Offset(0.60, 0.61),
+        Offset(0.68, 0.60),
+        Offset(0.52, 0.94),
+      ],
+      0.38,
+    ),
+    (
+      [
+        Offset(0.04, 0.55),
+        Offset(0.20, 0.66),
+        Offset(0.15, 0.69),
+        Offset(0.31, 0.80),
+      ],
+      0.72,
+    ),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final (points, phaseOffset) in _bolts) {
+      final phase = (progress + phaseOffset) % 1;
+      final flash = phase < 0.10
+          ? 1 - phase / 0.10
+          : phase > 0.14 && phase < 0.20
+          ? 1 - (phase - 0.14) / 0.06
+          : 0.0;
+
+      if (flash <= 0) {
+        continue;
+      }
+
+      final path = Path()
+        ..moveTo(points.first.dx * size.width, points.first.dy * size.height);
+      for (final point in points.skip(1)) {
+        path.lineTo(point.dx * size.width, point.dy * size.height);
+      }
+
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Colors.white.withValues(alpha: flash * 0.20)
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.35 + flash * 0.65)
+          ..strokeWidth = 1.5 + flash
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RareLightningPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}

@@ -109,6 +109,7 @@ class CardWidget extends StatelessWidget {
               if (card.rarity == CardRarity.legendary)
                 const LegendaryCardShimmer(),
               if (card.rarity == CardRarity.epic) const EpicCardSparkles(),
+              if (card.rarity == CardRarity.rare) const RareCardLightning(),
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
