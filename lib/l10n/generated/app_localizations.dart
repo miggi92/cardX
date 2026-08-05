@@ -224,6 +224,36 @@ abstract class AppLocalizations {
   /// **'Pull new player cards and expand your collection.'**
   String get shopSubtitle;
 
+  /// No description provided for @packRevealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New cards!'**
+  String get packRevealTitle;
+
+  /// No description provided for @packRevealSwipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to see all cards'**
+  String get packRevealSwipeHint;
+
+  /// No description provided for @packRevealCollectCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect cards'**
+  String get packRevealCollectCards;
+
+  /// No description provided for @packRevealOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulled cards ({count})'**
+  String packRevealOverviewTitle(int count);
+
+  /// No description provided for @packRevealDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get packRevealDone;
+
   /// No description provided for @shopNoPlayersForPackFound.
   ///
   /// In en, this message translates to:

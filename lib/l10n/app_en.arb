@@ -43,6 +43,18 @@
   "dashboardNoSportsFound": "No sports found.",
   "shopTitle": "Shop",
   "shopSubtitle": "Pull new player cards and expand your collection.",
+  "packRevealTitle": "New cards!",
+  "packRevealSwipeHint": "Swipe to see all cards",
+  "packRevealCollectCards": "Collect cards",
+  "packRevealOverviewTitle": "Pulled cards ({count})",
+  "@packRevealOverviewTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "packRevealDone": "Done",
   "shopNoPlayersForPackFound": "No players found for this pack!",
   "shopPurchaseCanceledCoinsRefunded": "Purchase canceled, coins were refunded.",
   "shopPurchaseFailedNotEnoughCoins": "Purchase failed or not enough coins!",

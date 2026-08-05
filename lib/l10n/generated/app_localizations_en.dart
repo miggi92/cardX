@@ -83,6 +83,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pull new player cards and expand your collection.';
 
   @override
+  String get packRevealTitle => 'New cards!';
+
+  @override
+  String get packRevealSwipeHint => 'Swipe to see all cards';
+
+  @override
+  String get packRevealCollectCards => 'Collect cards';
+
+  @override
+  String packRevealOverviewTitle(int count) {
+    return 'Pulled cards ($count)';
+  }
+
+  @override
+  String get packRevealDone => 'Done';
+
+  @override
   String get shopNoPlayersForPackFound => 'No players found for this pack!';
 
   @override

@@ -85,6 +85,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ziehe neue Spielerkarten und erweitere deine Sammlung.';
 
   @override
+  String get packRevealTitle => 'Neue Karten!';
+
+  @override
+  String get packRevealSwipeHint => 'Wische, um alle Karten zu sehen';
+
+  @override
+  String get packRevealCollectCards => 'Karten einsammeln';
+
+  @override
+  String packRevealOverviewTitle(int count) {
+    return 'Gezogene Karten ($count)';
+  }
+
+  @override
+  String get packRevealDone => 'Fertig';
+
+  @override
   String get shopNoPlayersForPackFound =>
       'Keine Spieler für dieses Pack gefunden!';
 
