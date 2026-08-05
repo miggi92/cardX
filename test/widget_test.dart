@@ -40,6 +40,7 @@ void main() {
                     teamName: 'Test Club',
                     teamLogoUrl: '',
                     playerImageUrl: '',
+                    season: '2025/26',
                     rarity: rarity,
                     stats: const PlayerStats(goals: 10, games: 20),
                   ),
@@ -70,6 +71,7 @@ void main() {
     expect(find.byKey(const ValueKey('rare-card-lightning')), findsOneWidget);
 
     await pumpCard(CardRarity.common);
+    expect(find.text('2025/26'), findsOneWidget);
     expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
     expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
     expect(find.byKey(const ValueKey('rare-card-lightning')), findsNothing);

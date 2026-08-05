@@ -344,6 +344,12 @@ abstract class AppLocalizations {
   /// **'Search players...'**
   String get collectionSearchHint;
 
+  /// No description provided for @collectionSeasonFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Season'**
+  String get collectionSeasonFilter;
+
   /// No description provided for @collectionSellCardFailed.
   ///
   /// In en, this message translates to:

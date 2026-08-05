@@ -46,7 +46,9 @@ class SupabaseShopRepository {
   Future<List<PackModel>> getAvailablePacks() async {
     final response = await _supabase
         .from('packs')
-        .select('id, name, price, type, filter_value, gradient_colors');
+        .select(
+          'id, name, price, type, filter_value, gradient_colors, season_id, seasons(display_name)',
+        );
     final clubPacks = response
         .where((json) => json['type'] == PackType.club.name)
         .toList();
@@ -95,6 +97,8 @@ class SupabaseShopRepository {
         type: type,
         filterValue: filterValue,
         logoUrl: type == PackType.club ? clubLogoByName[filterValue] : null,
+        seasonId: json['season_id'] as String?,
+        seasonName: json['seasons']?['display_name'] as String?,
         gradientColors: colors,
       );
     }).toList();
@@ -141,26 +145,33 @@ class SupabaseShopRepository {
     PackType type,
     String filterValue, {
     int count = 10,
+    String? seasonId,
   }) async {
     if (type == PackType.organization) {
-      return await generateRandomCardsFromAllPlayers(count: count);
+      return await generateRandomCardsFromAllPlayers(
+        count: count,
+        seasonId: seasonId,
+      );
     }
 
     final filteredPool = await _getRandomCardsFromRpc(
       packType: type.name,
       filterValue: filterValue,
       count: count,
+      seasonId: seasonId,
     );
     return await _buildCardsFromPool(filteredPool);
   }
 
   Future<List<CardModel>> generateRandomCardsFromAllPlayers({
     int count = 10,
+    String? seasonId,
   }) async {
     final allPlayers = await _getRandomCardsFromRpc(
       packType: 'all',
       filterValue: null,
       count: count,
+      seasonId: seasonId,
     );
     return await _buildCardsFromPool(allPlayers);
   }
@@ -169,6 +180,7 @@ class SupabaseShopRepository {
     required String packType,
     required String? filterValue,
     required int count,
+    String? seasonId,
   }) async {
     final response = await _supabase.rpc(
       'pull_random_cards',
@@ -176,6 +188,7 @@ class SupabaseShopRepository {
         'p_pack_type': packType,
         'p_filter_value': filterValue,
         'p_count': count,
+        'p_season_id': seasonId,
       },
     );
 
@@ -274,6 +287,7 @@ class SupabaseShopRepository {
           rarity: rarity,
           stats: _resolvePlayerStats(player),
           sport: (player['sport'] as String?) ?? '',
+          season: (player['season'] as String?) ?? '',
         ),
       );
     }

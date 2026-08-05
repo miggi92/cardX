@@ -9,6 +9,8 @@ class PackModel {
   final PackType type;
   final String filterValue;
   final String? logoUrl;
+  final String? seasonId;
+  final String? seasonName;
   final List<Color> gradientColors;
 
   const PackModel({
@@ -18,6 +20,8 @@ class PackModel {
     required this.type,
     required this.filterValue,
     this.logoUrl,
+    this.seasonId,
+    this.seasonName,
     required this.gradientColors,
   });
 }

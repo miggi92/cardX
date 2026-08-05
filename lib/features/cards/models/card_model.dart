@@ -12,6 +12,7 @@ class CardModel {
   final CardRarity rarity;
   final PlayerStats stats;
   final String sport;
+  final String season;
 
   const CardModel({
     required this.id,
@@ -24,6 +25,7 @@ class CardModel {
     required this.rarity,
     required this.stats,
     this.sport = '',
+    this.season = '',
   });
 
   factory CardModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class CardModel {
       rarity: CardRarity.values.byName(json['rarity'] as String),
       stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>),
       sport: (json['sport'] as String?) ?? '',
+      season: (json['season'] as String?) ?? '',
     );
   }
 
@@ -53,6 +56,7 @@ class CardModel {
       'rarity': rarity.name,
       'stats': stats.toJson(),
       'sport': sport,
+      'season': season,
     };
   }
 }

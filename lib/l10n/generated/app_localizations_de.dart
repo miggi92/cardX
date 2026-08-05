@@ -164,6 +164,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionSearchHint => 'Spieler suchen...';
 
   @override
+  String get collectionSeasonFilter => 'Saison';
+
+  @override
   String get collectionSellCardFailed => 'Karte konnte nicht verkauft werden.';
 
   @override

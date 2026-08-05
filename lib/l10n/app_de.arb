@@ -115,6 +115,7 @@
     }
   },
   "collectionSearchHint": "Spieler suchen...",
+  "collectionSeasonFilter": "Saison",
   "collectionSellCardFailed": "Karte konnte nicht verkauft werden.",
   "collectionCreditCoinsFailed": "Coins konnten nicht gutgeschrieben werden.",
   "collectionSoldCardForCoins": "{playerName} ({rarity}) verkauft für {coins} Coins!",

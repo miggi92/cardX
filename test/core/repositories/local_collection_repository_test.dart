@@ -24,6 +24,7 @@ void main() {
       rarity: CardRarity.rare,
       stats: PlayerStats(goals: 7, games: 12),
       sport: 'football',
+      season: '2025/26',
     );
 
     await repository.saveCards('user-a', [card]);

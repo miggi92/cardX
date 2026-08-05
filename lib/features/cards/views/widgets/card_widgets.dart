@@ -148,11 +148,24 @@ class CardWidget extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Text(
-                          card.position,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: brand.cardTextSecondary,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              card.position,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: brand.cardTextSecondary,
+                              ),
+                            ),
+                            if (card.season.isNotEmpty)
+                              Text(
+                                card.season,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: brand.cardTextSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),

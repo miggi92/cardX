@@ -115,6 +115,7 @@
     }
   },
   "collectionSearchHint": "Search players...",
+  "collectionSeasonFilter": "Season",
   "collectionSellCardFailed": "Card could not be sold.",
   "collectionCreditCoinsFailed": "Coins could not be credited.",
   "collectionSoldCardForCoins": "{playerName} ({rarity}) sold for {coins} coins!",

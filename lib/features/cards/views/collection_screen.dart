@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/providers/collection_provider.dart';
+import '../../../core/providers/admin_provider.dart';
 import '../../../core/providers/coin_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../cards/models/card_model.dart';
@@ -67,6 +68,7 @@ Widget _buildRemoteImage({
 class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   final TextEditingController searchController = TextEditingController();
   CardRarity? selectedRarity;
+  String? selectedSeasonId;
 
   ({int crossAxisCount, double childAspectRatio}) _gridConfigForWidth(
     double maxWidth,
@@ -447,12 +449,22 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
     final myCards = ref.watch(collectionProvider);
+    final seasonsAsync = ref.watch(seasonsProvider);
+    final seasons = seasonsAsync.value ?? const [];
+    final activeSeasonId = seasons
+        .where((season) => season.isActive)
+        .map((season) => season.id)
+        .firstOrNull;
+    final effectiveSeasonId = selectedSeasonId ?? activeSeasonId;
+    final seasonCards = effectiveSeasonId == null
+        ? myCards
+        : myCards.where((card) => card.season == effectiveSeasonId).toList();
 
     int totalDuplicateCount = 0;
     int totalDuplicateValue = 0;
     final Map<String, int> duplicateCheck = {};
 
-    for (final card in myCards) {
+    for (final card in seasonCards) {
       if (duplicateCheck.containsKey(card.id)) {
         totalDuplicateCount++;
         totalDuplicateValue += getSellValue(card.rarity);
@@ -462,7 +474,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     }
 
     final String query = searchController.text.toLowerCase();
-    final List<CardModel> filteredCards = myCards.where((card) {
+    final List<CardModel> filteredCards = seasonCards.where((card) {
       final matchesSearch = card.playerName.toLowerCase().contains(query);
       final matchesRarity =
           selectedRarity == null || card.rarity == selectedRarity;
@@ -500,22 +512,49 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       ..sort();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.collectionTitle(myCards.length))),
+      appBar: AppBar(title: Text(l10n.collectionTitle(seasonCards.length))),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: searchController,
-              onChanged: (value) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: l10n.collectionSearchHint,
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  key: ValueKey(effectiveSeasonId),
+                  initialValue: effectiveSeasonId,
+                  decoration: InputDecoration(
+                    labelText: l10n.collectionSeasonFilter,
+                    prefixIcon: const Icon(Icons.calendar_month_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  items: seasons
+                      .map(
+                        (season) => DropdownMenuItem(
+                          value: season.id,
+                          child: Text(season.displayName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: seasons.isEmpty
+                      ? null
+                      : (value) => setState(() => selectedSeasonId = value),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: searchController,
+                  onChanged: (value) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: l10n.collectionSearchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                ),
+              ],
             ),
           ),
 

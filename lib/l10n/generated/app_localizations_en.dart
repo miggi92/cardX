@@ -161,6 +161,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionSearchHint => 'Search players...';
 
   @override
+  String get collectionSeasonFilter => 'Season';
+
+  @override
   String get collectionSellCardFailed => 'Card could not be sold.';
 
   @override

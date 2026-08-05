@@ -77,6 +77,7 @@ class ShopScreen extends ConsumerWidget {
       pack.type,
       pack.filterValue,
       count: 10,
+      seasonId: pack.seasonId,
     );
   }
 
@@ -470,6 +471,26 @@ class ShopScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (pack.seasonName != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_month_outlined,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            pack.seasonName!,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     Row(
                       children: [
