@@ -95,7 +95,7 @@ class CardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final teamNames = card.stats.teams
         .map((team) => team.teamName.trim())
         .where((name) => name.isNotEmpty)
@@ -254,7 +254,9 @@ class CardWidget extends StatelessWidget {
                           if (card.sport.trim().isNotEmpty) ...[
                             const SizedBox(width: 6),
                             Tooltip(
-                              message: localizedSportLabel(l10n, card.sport),
+                              message: l10n == null
+                                  ? card.sport
+                                  : localizedSportLabel(l10n, card.sport),
                               child: Container(
                                 width: 24,
                                 height: 24,
