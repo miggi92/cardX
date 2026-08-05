@@ -193,6 +193,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cardStatsTitle => 'Teams & statistics';
 
   @override
+  String get cardStatsSeasonTotal => 'Season total';
+
+  @override
   String get cardStatsGoals => 'Goals';
 
   @override

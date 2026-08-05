@@ -2,9 +2,11 @@ import 'package:cardx/features/cards/models/player_stats.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('keeps statistics for multiple teams and uses the latest totals', () {
+  test('sums statistics across all teams in the selected season', () {
     final stats = PlayerStats.fromSupabase(
       legacyStats: {'goals': 3, 'games': 4},
+      season: '2025/26',
+      sport: 'handball',
       memberships: [
         {
           'is_active': true,
@@ -41,8 +43,8 @@ void main() {
       ],
     );
 
-    expect(stats.goals, 31);
-    expect(stats.games, 11);
+    expect(stats.goals, 51);
+    expect(stats.games, 19);
     expect(stats.teams, hasLength(2));
     expect(stats.teams.first.teamName, 'TV Flein 2');
     expect(stats.teams.first.integerValue('redCards'), 1);
@@ -83,5 +85,54 @@ void main() {
     expect(stats.goals, 7);
     expect(stats.games, 9);
     expect(stats.teams, isEmpty);
+  });
+
+  test('keeps former teams in the season and excludes other seasons', () {
+    final stats = PlayerStats.fromSupabase(
+      legacyStats: {'goals': 2, 'games': 3},
+      season: '2025/26',
+      sport: 'handball',
+      memberships: [
+        {
+          'is_active': false,
+          'club_season_teams': {
+            'team_name': 'Oberliga',
+            'season_id': '2025/26',
+            'sport_id': 'handball',
+          },
+          'player_team_stats': {
+            'stats': {'goals': 10, 'gamesPlayed': 4},
+          },
+        },
+        {
+          'is_active': true,
+          'club_season_teams': {
+            'team_name': 'Bezirksoberliga',
+            'season_id': '2025/26',
+            'sport_id': 'handball',
+          },
+          'player_team_stats': null,
+        },
+        {
+          'is_active': true,
+          'club_season_teams': {
+            'team_name': 'Vorjahresmannschaft',
+            'season_id': '2024/25',
+            'sport_id': 'handball',
+          },
+          'player_team_stats': {
+            'stats': {'goals': 99, 'gamesPlayed': 99},
+          },
+        },
+      ],
+    );
+
+    expect(stats.goals, 10);
+    expect(stats.games, 4);
+    expect(
+      stats.teams.map((team) => team.teamName),
+      containsAll(['Oberliga', 'Bezirksoberliga']),
+    );
+    expect(stats.teams, hasLength(2));
   });
 }

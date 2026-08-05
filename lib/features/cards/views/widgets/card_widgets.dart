@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../../core/constants/sport_utils.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../models/card_model.dart';
 import '../../models/card_rarity.dart';
 import 'card_rarity_effects.dart';
@@ -81,10 +83,24 @@ class CardWidget extends StatelessWidget {
     return clampDouble(shortestSide * factor, min, max);
   }
 
+  IconData _sportIcon() {
+    return switch (normalizeSportId(card.sport)) {
+      'handball' => Icons.sports_handball,
+      'soccer' => Icons.sports_soccer,
+      _ => Icons.sports,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brand = theme.extension<AppBrandTheme>()!;
+    final l10n = AppLocalizations.of(context)!;
+    final teamNames = card.stats.teams
+        .map((team) => team.teamName.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .join(' · ');
 
     return AspectRatio(
       aspectRatio: 0.71,
@@ -204,19 +220,59 @@ class CardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Text(
-                          card.teamName,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: brand.cardTextSecondary,
-                            fontWeight: FontWeight.w600,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Column(
+                              children: [
+                                Text(
+                                  card.teamName,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: brand.cardTextSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (teamNames.isNotEmpty)
+                                  Text(
+                                    teamNames,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: brand.cardTextSecondary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          if (card.sport.trim().isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Tooltip(
+                              message: localizedSportLabel(l10n, card.sport),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: brand.cardTextPrimary.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _sportIcon(),
+                                  size: 15,
+                                  color: brand.cardTextSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     Divider(

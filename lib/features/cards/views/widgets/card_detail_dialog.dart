@@ -1,4 +1,5 @@
 import 'package:cardx/core/theme/app_theme.dart';
+import 'package:cardx/core/constants/sport_utils.dart';
 import 'package:cardx/features/cards/models/card_model.dart';
 import 'package:cardx/features/cards/models/card_rarity.dart';
 import 'package:cardx/features/cards/models/player_stats.dart';
@@ -157,9 +158,28 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
     };
   }
 
+  Map<String, num> _summedValues(List<PlayerTeamStats> teams) {
+    final totals = <String, num>{};
+    for (final team in teams) {
+      for (final entry in team.values.entries) {
+        final key = entry.key == 'gamesPlayed' ? 'games' : entry.key;
+        totals[key] = (totals[key] ?? 0) + entry.value;
+      }
+    }
+    return totals;
+  }
+
+  bool _isVisibleStat(String sport, String key) {
+    return normalizeSportId(sport) == 'handball' ||
+        key == 'goals' ||
+        key == 'games' ||
+        key == 'gamesPlayed';
+  }
+
   Future<void> _showStatsSheet(
     BuildContext context,
     List<PlayerTeamStats> teams,
+    String sport,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -177,7 +197,7 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
           child: ListView.separated(
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            itemCount: teams.length + 1,
+            itemCount: teams.length + 2,
             separatorBuilder: (_, index) => index == 0
                 ? const SizedBox(height: 8)
                 : Divider(color: brand.surfaceBorder, height: 28),
@@ -191,20 +211,64 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
                 );
               }
 
-              final team = teams[index - 1];
+              if (index == 1) {
+                final totals =
+                    _summedValues(teams).entries
+                        .where((entry) => _isVisibleStat(sport, entry.key))
+                        .toList()
+                      ..sort(
+                        (a, b) => _statLabel(
+                          l10n,
+                          a.key,
+                        ).compareTo(_statLabel(l10n, b.key)),
+                      );
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.cardStatsSeasonTotal,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: totals
+                          .map(
+                            (entry) => Chip(
+                              avatar: Text(
+                                entry.value.toString(),
+                                style: theme.textTheme.labelLarge,
+                              ),
+                              label: Text(_statLabel(l10n, entry.key)),
+                              side: BorderSide(color: brand.surfaceBorder),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                );
+              }
+
+              final team = teams[index - 2];
               final contextParts = [
                 team.season,
                 team.ageGroup,
                 _genderLabel(l10n, team.gender),
                 team.league,
               ].where((part) => part.isNotEmpty).toList();
-              final values = team.values.entries.toList()
-                ..sort(
-                  (a, b) => _statLabel(
-                    l10n,
-                    a.key,
-                  ).compareTo(_statLabel(l10n, b.key)),
-                );
+              final values =
+                  team.values.entries
+                      .where((entry) => _isVisibleStat(sport, entry.key))
+                      .toList()
+                    ..sort(
+                      (a, b) => _statLabel(
+                        l10n,
+                        a.key,
+                      ).compareTo(_statLabel(l10n, b.key)),
+                    );
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,8 +360,11 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
                     ),
                     if (selectedCard.stats.teams.isNotEmpty)
                       IconButton(
-                        onPressed: () =>
-                            _showStatsSheet(context, selectedCard.stats.teams),
+                        onPressed: () => _showStatsSheet(
+                          context,
+                          selectedCard.stats.teams,
+                          selectedCard.sport,
+                        ),
                         icon: const Icon(Icons.analytics_outlined),
                         tooltip: l10n.cardStatsTitle,
                       ),

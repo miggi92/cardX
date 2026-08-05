@@ -22,6 +22,8 @@ class SupabaseShopRepository {
           player['player_stats'] ??
           {'goals': player['goals'], 'games': player['games']},
       memberships: player['player_team_memberships'],
+      season: player['season'] as String? ?? '',
+      sport: player['sport'] as String? ?? '',
     );
   }
 

@@ -396,6 +396,12 @@ abstract class AppLocalizations {
   /// **'Teams & statistics'**
   String get cardStatsTitle;
 
+  /// No description provided for @cardStatsSeasonTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Season total'**
+  String get cardStatsSeasonTotal;
+
   /// No description provided for @cardStatsGoals.
   ///
   /// In en, this message translates to:

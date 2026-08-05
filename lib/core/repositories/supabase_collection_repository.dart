@@ -78,6 +78,8 @@ class SupabaseCollectionRepository {
           stats: PlayerStats.fromSupabase(
             legacyStats: player['player_stats'],
             memberships: player['player_team_memberships'],
+            season: player['season'] as String? ?? '',
+            sport: player['sport'] as String? ?? '',
           ),
           sport: (player['sport'] as String?) ?? '',
           season: (player['season'] as String?) ?? '',

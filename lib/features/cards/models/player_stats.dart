@@ -28,13 +28,23 @@ class PlayerStats {
     };
   }
 
-  factory PlayerStats.fromSupabase({dynamic legacyStats, dynamic memberships}) {
+  factory PlayerStats.fromSupabase({
+    dynamic legacyStats,
+    dynamic memberships,
+    String season = '',
+    String sport = '',
+  }) {
     final legacy = _readLegacyStats(legacyStats);
     final teams = memberships is List
         ? memberships
               .whereType<Map>()
               .map(PlayerTeamStats.fromSupabase)
               .whereType<PlayerTeamStats>()
+              .where(
+                (team) =>
+                    (season.isEmpty || team.season == season) &&
+                    (sport.isEmpty || team.sport == sport),
+              )
               .toList()
         : <PlayerTeamStats>[];
 
@@ -44,13 +54,27 @@ class PlayerStats {
       return bTime.compareTo(aTime);
     });
 
-    final latest = teams.firstOrNull;
+    final teamGoals = teams
+        .map((team) => team.integerValue('goals'))
+        .whereType<int>()
+        .fold(0, (total, value) => total + value);
+    final hasTeamGoals = teams.any((team) => team.values.containsKey('goals'));
+    final teamGames = teams
+        .map(
+          (team) =>
+              team.integerValue('gamesPlayed') ?? team.integerValue('games'),
+        )
+        .whereType<int>()
+        .fold(0, (total, value) => total + value);
+    final hasTeamGames = teams.any(
+      (team) =>
+          team.values.containsKey('gamesPlayed') ||
+          team.values.containsKey('games'),
+    );
+
     return PlayerStats(
-      goals: latest?.integerValue('goals') ?? legacy.$1,
-      games:
-          latest?.integerValue('gamesPlayed') ??
-          latest?.integerValue('games') ??
-          legacy.$2,
+      goals: hasTeamGoals ? teamGoals : legacy.$1,
+      games: hasTeamGames ? teamGames : legacy.$2,
       teams: teams,
     );
   }
@@ -106,10 +130,6 @@ class PlayerTeamStats {
   }
 
   static PlayerTeamStats? fromSupabase(Map membership) {
-    if (membership['is_active'] == false) {
-      return null;
-    }
-
     final rawTeam = membership['club_season_teams'];
     if (rawTeam is! Map) {
       return null;
@@ -121,10 +141,6 @@ class PlayerTeamStats {
         : rawStats is Map
         ? rawStats
         : null;
-    if (stats == null) {
-      return null;
-    }
-
     return PlayerTeamStats(
       teamName: rawTeam['team_name'] as String? ?? '',
       season: rawTeam['season_id'] as String? ?? '',
@@ -132,8 +148,10 @@ class PlayerTeamStats {
       gender: rawTeam['gender'] as String? ?? '',
       sport: rawTeam['sport_id'] as String? ?? '',
       league: rawTeam['league_id'] as String? ?? '',
-      values: _readValues(stats['stats']),
-      lastSyncedAt: DateTime.tryParse(stats['last_synced_at'] as String? ?? ''),
+      values: _readValues(stats?['stats']),
+      lastSyncedAt: DateTime.tryParse(
+        stats?['last_synced_at'] as String? ?? '',
+      ),
     );
   }
 

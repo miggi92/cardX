@@ -197,6 +197,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cardStatsTitle => 'Mannschaften & Statistiken';
 
   @override
+  String get cardStatsSeasonTotal => 'Saison gesamt';
+
+  @override
   String get cardStatsGoals => 'Tore';
 
   @override
