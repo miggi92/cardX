@@ -21,6 +21,7 @@
 - Shop/Collection duerfen auf kleinen Screens nicht ueberlaufen.
 - Bild-Ladefehler robust mit Fallback behandeln.
 - Legendary-Karten in `CardWidget` nutzen einen dezenten animierten Schimmer.
+- Epic-Karten in `CardWidget` nutzen einen animierten Sternenglitzer-Effekt.
 - Admin UI strikt role-gated rendern.
 
 ## Checkliste vor Merge

@@ -21,7 +21,7 @@ void main() {
     expect(find.text('CardX'), findsOneWidget);
   });
 
-  testWidgets('only legendary cards render the shimmer effect', (
+  testWidgets('special rarity cards render only their own effect', (
     WidgetTester tester,
   ) async {
     Future<void> pumpCard(CardRarity rarity) {
@@ -56,8 +56,14 @@ void main() {
       find.byKey(const ValueKey('legendary-card-shimmer')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
 
     await pumpCard(CardRarity.epic);
     expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
+    expect(find.byKey(const ValueKey('epic-card-sparkles')), findsOneWidget);
+
+    await pumpCard(CardRarity.common);
+    expect(find.byKey(const ValueKey('legendary-card-shimmer')), findsNothing);
+    expect(find.byKey(const ValueKey('epic-card-sparkles')), findsNothing);
   });
 }
