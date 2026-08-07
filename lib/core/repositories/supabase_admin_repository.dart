@@ -471,16 +471,17 @@ class SupabaseAdminRepository {
     final normalizedClubId = clubId?.trim();
     final normalizedSport = sport?.trim().toLowerCase();
 
+    final params = <String, dynamic>{};
+    if (normalizedClubId != null && normalizedClubId.isNotEmpty) {
+      params['p_club_id'] = normalizedClubId;
+    }
+    if (normalizedSport != null && normalizedSport.isNotEmpty) {
+      params['p_sport'] = normalizedSport;
+    }
+
     final response = await _supabase.rpc(
       'backfill_player_successions',
-      params: {
-        'p_club_id': (normalizedClubId == null || normalizedClubId.isEmpty)
-            ? null
-            : normalizedClubId,
-        'p_sport': (normalizedSport == null || normalizedSport.isEmpty)
-            ? null
-            : normalizedSport,
-      },
+      params: params,
     );
 
     return switch (response) {
