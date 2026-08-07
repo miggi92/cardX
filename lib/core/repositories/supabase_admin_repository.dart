@@ -467,6 +467,30 @@ class SupabaseAdminRepository {
     );
   }
 
+  Future<int> backfillPlayerSuccessions({String? clubId, String? sport}) async {
+    final normalizedClubId = clubId?.trim();
+    final normalizedSport = sport?.trim().toLowerCase();
+
+    final response = await _supabase.rpc(
+      'backfill_player_successions',
+      params: {
+        'p_club_id': (normalizedClubId == null || normalizedClubId.isEmpty)
+            ? null
+            : normalizedClubId,
+        'p_sport': (normalizedSport == null || normalizedSport.isEmpty)
+            ? null
+            : normalizedSport,
+      },
+    );
+
+    return switch (response) {
+      int value => value,
+      num value => value.toInt(),
+      String value => int.tryParse(value) ?? 0,
+      _ => 0,
+    };
+  }
+
   Future<List<AdminPlayer>> getPlayersForClub({required String clubId}) async {
     final response = await _supabase
         .from('player_pool')

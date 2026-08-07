@@ -651,11 +651,14 @@ class AdminCreatePlayerCard extends StatelessWidget {
     required this.selectedImageName,
     required this.canCreate,
     required this.isSaving,
+    required this.canBackfillSuccessions,
+    required this.isBackfillingSuccessions,
     required this.onSportChanged,
     required this.onPositionChanged,
     required this.onSeasonChanged,
     required this.onPickImage,
     required this.onCreatePlayer,
+    required this.onBackfillSuccessions,
   });
 
   final GlobalKey<FormState> formKey;
@@ -669,11 +672,14 @@ class AdminCreatePlayerCard extends StatelessWidget {
   final String? selectedImageName;
   final bool canCreate;
   final bool isSaving;
+  final bool canBackfillSuccessions;
+  final bool isBackfillingSuccessions;
   final ValueChanged<String?> onSportChanged;
   final ValueChanged<String?> onPositionChanged;
   final ValueChanged<String?> onSeasonChanged;
   final VoidCallback onPickImage;
   final Future<void> Function() onCreatePlayer;
+  final Future<void> Function() onBackfillSuccessions;
 
   @override
   Widget build(BuildContext context) {
@@ -825,6 +831,23 @@ class AdminCreatePlayerCard extends StatelessWidget {
                         )
                       : const Icon(Icons.add_circle_outline),
                   label: const Text('Spieler speichern'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: canBackfillSuccessions && !isBackfillingSuccessions
+                      ? onBackfillSuccessions
+                      : null,
+                  icon: isBackfillingSuccessions
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.link_outlined),
+                  label: const Text('Nachfolger aus Bestand verknuepfen'),
                 ),
               ),
               if (!canCreate) ...[

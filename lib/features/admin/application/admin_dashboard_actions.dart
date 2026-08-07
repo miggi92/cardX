@@ -37,6 +37,16 @@ class AdminDashboardActions {
         );
   }
 
+  Future<int> backfillPlayerSuccessions({
+    required WidgetRef ref,
+    String? clubId,
+    String? sport,
+  }) {
+    return ref
+        .read(adminRepoProvider)
+        .backfillPlayerSuccessions(clubId: clubId, sport: sport);
+  }
+
   Future<void> submitSportRequest({
     required WidgetRef ref,
     required String sportId,

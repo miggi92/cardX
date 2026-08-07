@@ -44,6 +44,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   String? _selectedImageName;
   bool _isSaving = false;
   bool _isSubmittingSportRequest = false;
+  bool _isBackfillingSuccessions = false;
   bool _isUserSearching = false;
   bool _filterPendingBySelectedClub = true;
   bool _roleCanCreatePlayers = true;
@@ -314,6 +315,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 scope.isGlobalAdmin ||
                 (selectedPermission?.canCreatePlayers ?? false),
             isSaving: _isSaving,
+            canBackfillSuccessions:
+                scope.isGlobalAdmin ||
+                (selectedPermission?.canEditPlayers ?? false),
+            isBackfillingSuccessions: _isBackfillingSuccessions,
             onSportChanged: (value) {
               if (value == null) {
                 return;
@@ -341,6 +346,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             },
             onPickImage: _pickImage,
             onCreatePlayer: _createPlayer,
+            onBackfillSuccessions: _backfillPlayerSuccessions,
           ),
           const SizedBox(height: 16),
           AdminPlayersSection(
@@ -715,6 +721,65 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       if (mounted) {
         setState(() {
           _isSubmittingSportRequest = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _backfillPlayerSuccessions() async {
+    if (_isBackfillingSuccessions) {
+      return;
+    }
+
+    final clubId = _selectedClubId;
+    if (clubId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte zuerst einen Verein auswaehlen.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isBackfillingSuccessions = true;
+    });
+
+    try {
+      final inserted = await _actions.backfillPlayerSuccessions(
+        ref: ref,
+        clubId: clubId,
+        sport: _selectedSport,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ref.invalidate(adminPlayersByClubProvider(clubId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            inserted > 0
+                ? '$inserted Nachfolger-Verknuepfungen wurden angelegt.'
+                : 'Keine neuen Nachfolger-Verknuepfungen gefunden.',
+          ),
+        ),
+      );
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Backfill fehlgeschlagen: ${error.message}')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Backfill fehlgeschlagen: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBackfillingSuccessions = false;
         });
       }
     }
