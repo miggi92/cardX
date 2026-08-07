@@ -1,4 +1,5 @@
 import 'package:cardx/features/cards/models/player_stats.dart';
+import 'package:cardx/features/cards/views/widgets/card_detail_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -48,6 +49,17 @@ void main() {
     expect(stats.teams, hasLength(2));
     expect(stats.teams.first.teamName, 'TV Flein 2');
     expect(stats.teams.first.integerValue('redCards'), 1);
+  });
+
+  test('hides statistics whose values are null or zero from display', () {
+    final visible = visibleStatEntries(const [
+      MapEntry('goals', 3),
+      MapEntry('games', 0),
+      MapEntry('penaltyGoals', null),
+      MapEntry('redCards', 1),
+    ], 'handball');
+
+    expect(visible.map((entry) => entry.key), ['goals', 'redCards']);
   });
 
   test('round-trips team statistics through cached card JSON', () {

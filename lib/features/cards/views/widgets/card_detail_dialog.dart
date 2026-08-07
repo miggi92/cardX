@@ -7,6 +7,22 @@ import 'package:cardx/features/cards/views/widgets/card_widgets.dart';
 import 'package:cardx/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+List<MapEntry<String, dynamic>> visibleStatEntries(
+  Iterable<MapEntry<String, dynamic>> entries,
+  String sport,
+) {
+  return entries.where((entry) {
+    final value = entry.value;
+    final isVisible =
+        normalizeSportId(sport) == 'handball' ||
+        entry.key == 'goals' ||
+        entry.key == 'games' ||
+        entry.key == 'gamesPlayed';
+
+    return isVisible && value != null && value != 0;
+  }).toList();
+}
+
 class CardDetailDialog extends StatefulWidget {
   final String playerName;
   final List<CardModel> cards;
@@ -213,9 +229,7 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
 
               if (index == 1) {
                 final totals =
-                    _summedValues(teams).entries
-                        .where((entry) => _isVisibleStat(sport, entry.key))
-                        .toList()
+                    visibleStatEntries(_summedValues(teams).entries, sport)
                       ..sort(
                         (a, b) => _statLabel(
                           l10n,
@@ -259,16 +273,13 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
                 _genderLabel(l10n, team.gender),
                 team.league,
               ].where((part) => part.isNotEmpty).toList();
-              final values =
-                  team.values.entries
-                      .where((entry) => _isVisibleStat(sport, entry.key))
-                      .toList()
-                    ..sort(
-                      (a, b) => _statLabel(
-                        l10n,
-                        a.key,
-                      ).compareTo(_statLabel(l10n, b.key)),
-                    );
+              final values = visibleStatEntries(team.values.entries, sport)
+                ..sort(
+                  (a, b) => _statLabel(
+                    l10n,
+                    a.key,
+                  ).compareTo(_statLabel(l10n, b.key)),
+                );
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
