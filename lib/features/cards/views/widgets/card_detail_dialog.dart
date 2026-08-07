@@ -185,13 +185,6 @@ class _CardDetailDialogState extends State<CardDetailDialog> {
     return totals;
   }
 
-  bool _isVisibleStat(String sport, String key) {
-    return normalizeSportId(sport) == 'handball' ||
-        key == 'goals' ||
-        key == 'games' ||
-        key == 'gamesPlayed';
-  }
-
   Future<void> _showStatsSheet(
     BuildContext context,
     List<PlayerTeamStats> teams,
