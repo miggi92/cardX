@@ -518,21 +518,33 @@ class SupabaseAdminRepository {
     Uint8List? imageBytes,
     String? imageExtension,
   }) async {
+    final normalizedName = name.trim();
+    final normalizedSeason = season.trim();
+    final normalizedSport = sport.trim().toLowerCase();
+
     final playerId = await _supabase.rpc(
       'create_player_with_stats',
       params: {
-        'p_name': name,
+        'p_name': normalizedName,
         'p_position': position,
         'p_club_id': clubId,
-        'p_sport': sport,
+        'p_sport': normalizedSport,
         'p_league': '',
-        'p_season': season,
+        'p_season': normalizedSeason,
         'p_goals': goals,
         'p_games': games,
       },
     );
 
     final createdId = '$playerId';
+
+    await _autoLinkPlayerSuccession(
+      playerId: createdId,
+      name: normalizedName,
+      clubId: clubId,
+      sport: normalizedSport,
+      seasonId: normalizedSeason,
+    );
 
     if (imageBytes != null && imageBytes.isNotEmpty) {
       await _uploadPlayerImage(
@@ -543,6 +555,90 @@ class SupabaseAdminRepository {
     }
 
     return createdId;
+  }
+
+  Future<void> _autoLinkPlayerSuccession({
+    required String playerId,
+    required String name,
+    required String clubId,
+    required String sport,
+    required String seasonId,
+  }) async {
+    if (name.isEmpty ||
+        clubId.trim().isEmpty ||
+        sport.isEmpty ||
+        seasonId.isEmpty) {
+      return;
+    }
+
+    try {
+      final createdSeason = await _supabase
+          .from('seasons')
+          .select('sort_order')
+          .eq('id', seasonId)
+          .maybeSingle();
+      final createdSortOrder = (createdSeason?['sort_order'] as num?)?.toInt();
+      if (createdSortOrder == null) {
+        return;
+      }
+
+      final candidates = await _supabase
+          .from('player_pool')
+          .select('id, seasons!inner(sort_order)')
+          .eq('club_id', clubId)
+          .eq('sport', sport)
+          .eq('name', name)
+          .neq('id', playerId);
+
+      String? predecessorId;
+      var predecessorSortOrder = -1;
+
+      for (final row in candidates) {
+        final rawSeason = row['seasons'];
+        int? sortOrder;
+        if (rawSeason is Map<String, dynamic>) {
+          sortOrder = (rawSeason['sort_order'] as num?)?.toInt();
+        }
+
+        if (sortOrder == null || sortOrder >= createdSortOrder) {
+          continue;
+        }
+
+        if (sortOrder > predecessorSortOrder) {
+          predecessorSortOrder = sortOrder;
+          predecessorId = '${row['id']}';
+        }
+      }
+
+      if (predecessorId == null) {
+        return;
+      }
+
+      final existingOutgoing = await _supabase
+          .from('player_successions')
+          .select('predecessor_player_id')
+          .eq('predecessor_player_id', predecessorId)
+          .maybeSingle();
+      if (existingOutgoing != null) {
+        return;
+      }
+
+      final existingIncoming = await _supabase
+          .from('player_successions')
+          .select('successor_player_id')
+          .eq('successor_player_id', playerId)
+          .maybeSingle();
+      if (existingIncoming != null) {
+        return;
+      }
+
+      await _supabase.from('player_successions').insert({
+        'predecessor_player_id': predecessorId,
+        'successor_player_id': playerId,
+      });
+    } catch (_) {
+      // Succession linking is best-effort and must not block player creation.
+    }
   }
 
   Future<void> updatePlayer({
