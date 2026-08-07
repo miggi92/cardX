@@ -77,7 +77,7 @@ class ShopScreen extends ConsumerWidget {
       pack.type,
       pack.filterValue,
       count: 10,
-      seasonId: pack.seasonId,
+      seasonId: pack.type == PackType.organization ? null : pack.seasonId,
     );
   }
 
